@@ -2,7 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { SessionForm } from '../components/SessionForm'
 import { useAuth } from '../hooks/useAuth'
+import { useTeacherEnrollments } from '../hooks/useTeacherEnrollments'
 import { useTeacherSessions } from '../hooks/useTeacherSessions'
+import {
+  groupPaginatedEnrollmentsBySession,
+} from '../utils/teacherEnrollment'
+import { supabase } from '../utils/supabase'
 
 const TABS = [
   { id: 'sessions', label: 'Sessions' },
@@ -22,6 +27,25 @@ export const AdminPanel = () => {
     error: sessionsError,
     refetch: refetchSessions,
   } = useTeacherSessions(user?.id)
+
+  const [enrollmentPage, setEnrollmentPage] = useState(1)
+
+  const {
+    enrollments,
+    loading: enrollmentsLoading,
+    error: enrollmentsError,
+    updatingId,
+    actionMessage,
+    refetch: refetchEnrollments,
+    approveEnrollment,
+    rejectEnrollment,
+    clearActionMessage,
+  } = useTeacherEnrollments(user?.id)
+
+  const enrollmentPagination = useMemo(
+    () => groupPaginatedEnrollmentsBySession(enrollments, enrollmentPage),
+    [enrollments, enrollmentPage]
+  )
 
   const stateMessage = location.state?.message ?? ''
   const [dismissedStateMessage, setDismissedStateMessage] = useState(null)
@@ -234,10 +258,195 @@ export const AdminPanel = () => {
         )}
 
         {activeTab === 'enrollments' && (
-          <ComingSoonState
-            title="Enrollment review is ready for the next phase"
-            message="The tabbed admin layout is in place. Payment approval tools will plug into this area next."
-          />
+          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold text-gray-900">
+                  Session Enrollments
+                </h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  Review payment proof and approve or reject enrollments for your
+                  sessions.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={refetchEnrollments}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+              >
+                Refresh
+              </button>
+            </div>
+
+            {actionMessage && (
+              <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                <div className="flex items-start justify-between gap-3">
+                  <p>{actionMessage}</p>
+                  <button
+                    type="button"
+                    onClick={clearActionMessage}
+                    className="text-emerald-700 hover:text-emerald-900"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {enrollmentsLoading && (
+              <LoadingState message="Loading enrollments for your sessions..." />
+            )}
+
+            {!enrollmentsLoading && enrollmentsError && (
+              <ErrorState message={enrollmentsError} onRetry={refetchEnrollments} />
+            )}
+
+            {!enrollmentsLoading &&
+              !enrollmentsError &&
+              enrollments.length === 0 && (
+                <EmptyState
+                  title="No enrollments yet"
+                  message="When students enroll in your sessions, their payment proof will appear here."
+                />
+              )}
+
+            {!enrollmentsLoading &&
+              !enrollmentsError &&
+              enrollmentPagination.items.length > 0 && (
+                <>
+                  <p className="mb-4 text-sm text-gray-600">
+                    Showing {enrollmentPagination.items.length} of{' '}
+                    {enrollmentPagination.totalItems} enrollment
+                    {enrollmentPagination.totalItems === 1 ? '' : 's'}
+                  </p>
+
+                  <div className="grid gap-6">
+                    {enrollmentPagination.groups.map((group) => (
+                      <section
+                        key={group.session.id}
+                        className="rounded-xl border border-gray-200 bg-gray-50 p-4"
+                      >
+                        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-blue-700">
+                              {group.session.subject || 'General'}
+                            </p>
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {group.session.title || 'Untitled session'}
+                            </h3>
+                            <p className="mt-1 text-sm text-gray-600">
+                              {formatDateTime(group.session.scheduled_at)}
+                            </p>
+                          </div>
+                          <span className="text-sm font-medium text-gray-700">
+                            {group.enrollments.length} enrollment
+                            {group.enrollments.length === 1 ? '' : 's'} on this page
+                          </span>
+                        </div>
+
+                        <ul className="grid gap-4" aria-label="Session enrollments">
+                          {group.enrollments.map((enrollment) => (
+                            <li
+                              key={enrollment.id}
+                              className="rounded-xl border border-gray-200 bg-white p-4"
+                            >
+                              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                <div>
+                                  <p className="text-sm font-semibold text-gray-900">
+                                    {enrollment.student?.username || 'Unknown student'}
+                                  </p>
+                                  <p className="text-sm text-gray-600">
+                                    {enrollment.student?.email || 'No email on file'}
+                                  </p>
+                                  <p className="mt-2 text-xs text-gray-500">
+                                    Enrolled {formatDateTime(enrollment.enrolled_at)}
+                                  </p>
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <PaymentStatusBadge status={enrollment.payment_status} />
+                                  {enrollment.payment_status === 'pending' && (
+                                    <>
+                                      <button
+                                        type="button"
+                                        disabled={updatingId === enrollment.id}
+                                        onClick={() => approveEnrollment(enrollment)}
+                                        className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                      >
+                                        Approve
+                                      </button>
+                                      <button
+                                        type="button"
+                                        disabled={updatingId === enrollment.id}
+                                        onClick={() => rejectEnrollment(enrollment)}
+                                        className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                      >
+                                        Reject
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+
+                              {enrollment.payment_note && (
+                                <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                    Payment note
+                                  </p>
+                                  <p className="mt-1 text-sm text-gray-800">
+                                    {enrollment.payment_note}
+                                  </p>
+                                </div>
+                              )}
+
+                              {enrollment.payment_screenshot && (
+                                <PaymentProofImage path={enrollment.payment_screenshot} />
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    ))}
+                  </div>
+
+                  {enrollmentPagination.totalPages > 1 && (
+                    <div className="mt-5 flex items-center justify-between gap-3">
+                      <p className="text-sm text-gray-600">
+                        Page {enrollmentPagination.page} of{' '}
+                        {enrollmentPagination.totalPages}
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          disabled={enrollmentPagination.page === 1}
+                          onClick={() =>
+                            setEnrollmentPage((page) => Math.max(1, page - 1))
+                          }
+                          className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Previous
+                        </button>
+                        <button
+                          type="button"
+                          disabled={
+                            enrollmentPagination.page === enrollmentPagination.totalPages
+                          }
+                          onClick={() =>
+                            setEnrollmentPage((page) =>
+                              Math.min(enrollmentPagination.totalPages, page + 1)
+                            )
+                          }
+                          className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+          </section>
         )}
 
         {activeTab === 'topic-requests' && (
@@ -307,6 +516,80 @@ const ErrorState = ({ message, onRetry }) => (
     </button>
   </div>
 )
+
+const PaymentStatusBadge = ({ status }) => {
+  const classes = {
+    pending: 'bg-amber-100 text-amber-800',
+    approved: 'bg-emerald-100 text-emerald-800',
+    rejected: 'bg-red-100 text-red-800',
+  }
+
+  return (
+    <span
+      className={`rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${
+        classes[status] || 'bg-gray-200 text-gray-700'
+      }`}
+    >
+      {status || 'unknown'}
+    </span>
+  )
+}
+
+const PaymentProofImage = ({ path }) => {
+  const [imageUrl, setImageUrl] = useState(null)
+  const [imageError, setImageError] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadProof = async () => {
+      setImageUrl(null)
+      setImageError(null)
+
+      if (!path) return
+
+      try {
+        const { data, error } = await supabase.storage
+          .from('payment-proofs')
+          .createSignedUrl(path, 3600)
+
+        if (error) throw error
+        if (!cancelled) {
+          setImageUrl(data.signedUrl)
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setImageError('Unable to load payment screenshot.')
+        }
+      }
+    }
+
+    loadProof()
+
+    return () => {
+      cancelled = true
+    }
+  }, [path])
+
+  return (
+    <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+        Payment screenshot
+      </p>
+      {imageUrl && (
+        <img
+          src={imageUrl}
+          alt="Student payment proof"
+          className="mt-3 max-h-72 w-full rounded-lg border border-gray-200 object-contain bg-white"
+        />
+      )}
+      {imageError && <p className="mt-2 text-sm text-red-700">{imageError}</p>}
+      {!imageUrl && !imageError && (
+        <p className="mt-2 text-sm text-gray-600">Loading payment screenshot...</p>
+      )}
+    </div>
+  )
+}
 
 const ComingSoonState = ({ title, message }) => (
   <section className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center shadow-sm">

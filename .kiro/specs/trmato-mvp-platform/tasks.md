@@ -350,8 +350,8 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
 
 ### Phase 7: Teacher Admin Panel - Enrollment Management (15 minutes)
 
-- [ ] 26. Build enrollment management interface
-  - [ ] 26.1 Display enrollments for teacher's sessions
+- [x] 26. Build enrollment management interface
+  - [x] 26.1 Display enrollments for teacher's sessions
     - Fetch enrollments for sessions created by current teacher
     - Group enrollments by session
     - Display student info, payment status, payment proof
@@ -360,7 +360,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - Paginate enrollments (20 per page)
     - _Requirements: 7.2, 7.3, 7.4, 7.5, 12.3_
 
-  - [ ] 26.2 Implement approve/reject actions
+  - [x] 26.2 Implement approve/reject actions
     - Add approve button to update payment_status to 'approved'
     - Add reject button to update payment_status to 'rejected'
     - Verify teacher owns the session before allowing updates
@@ -368,7 +368,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - Refresh enrollment list after update
     - _Requirements: 7.6, 7.7, 7.8_
 
-  - [ ]* 26.3 Write property tests for enrollment management
+  - [x]* 26.3 Write property tests for enrollment management
     - **Property 34: Teacher Session Ownership Filtering**
     - **Validates: Requirements 7.1**
     - **Property 35: Payment Status Transition on Approval**
