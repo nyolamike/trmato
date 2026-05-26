@@ -255,8 +255,8 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
 
 ### Phase 5: Student Dashboard (15 minutes)
 
-- [ ] 20. Create Student Dashboard page
-  - [ ] 20.1 Implement enrollment list display
+- [x] 20. Create Student Dashboard page
+  - [x] 20.1 Implement enrollment list display
     - Fetch enrollments for current student with session details
     - Display session title, date, price, payment status
     - Show payment status badges (pending/approved/rejected)
@@ -265,14 +265,14 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - Paginate enrollments (20 per page)
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 12.3_
 
-  - [ ]* 20.2 Write property tests for enrollment display
+  - [x]* 20.2 Write property tests for enrollment display
     - **Property 19: Student Enrollment Filtering**
     - **Validates: Requirements 5.1**
     - **Property 20: Meet Link Conditional Visibility**
     - **Validates: Requirements 5.3, 5.4**
 
-- [ ] 21. Add "My Topic Requests" section to dashboard
-  - [ ] 21.1 Display student's topic requests
+- [x] 21. Add "My Topic Requests" section to dashboard
+  - [x] 21.1 Display student's topic requests
     - Fetch topic requests where student_id matches current user
     - Display subject, topic, description, vote count, status
     - Show status badges (pending/approved/rejected)
@@ -281,7 +281,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - Sort by created_at descending (newest first)
     - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5, 18.6, 18.7_
 
-  - [ ]* 21.2 Write property test for topic request filtering
+  - [x]* 21.2 Write property test for topic request filtering
     - **Property 108: Student Topic Request Filtering**
     - **Validates: Requirements 18.1**
 

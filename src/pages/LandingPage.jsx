@@ -36,6 +36,7 @@ export const LandingPage = () => {
   // timeout to hide it. `localMessage` is set by local event handlers
   // (e.g. sign-out) and auto-clears the same way.
   const stateMessage = location.state?.message ?? ''
+  const requestedSessionId = location.state?.sessionIdToOpen ?? null
   const [dismissedStateMessage, setDismissedStateMessage] = useState(null)
   const [localMessage, setLocalMessage] = useState('')
 
@@ -94,6 +95,19 @@ export const LandingPage = () => {
     () => sessions.find((session) => session.id === selectedSessionId) ?? null,
     [sessions, selectedSessionId]
   )
+
+  useEffect(() => {
+    if (!requestedSessionId || loading || sessions.length === 0) return
+    const sessionToOpen = sessions.find((session) => session.id === requestedSessionId)
+    if (sessionToOpen) {
+      const timer = window.setTimeout(() => {
+        setSelectedSessionId(sessionToOpen.id)
+      }, 0)
+
+      return () => window.clearTimeout(timer)
+    }
+  }, [requestedSessionId, loading, sessions])
+
   const handleSessionClick = (session) => {
     setSelectedSessionId(session.id)
   }
