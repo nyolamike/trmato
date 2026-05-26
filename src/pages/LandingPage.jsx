@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useUpcomingSessions } from '../hooks/useUpcomingSessions'
 import { SessionCard } from '../components/SessionCard'
@@ -215,6 +215,28 @@ export const LandingPage = () => {
               </div>
             </div>
           )}
+        </section>
+
+        <section
+          aria-labelledby="topic-requests-cta-heading"
+          className="mx-auto mb-8 max-w-3xl rounded-xl border border-blue-100 bg-blue-50 p-5 shadow-sm sm:p-6"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 id="topic-requests-cta-heading" className="text-lg font-semibold text-gray-900">
+                Have a topic in mind?
+              </h2>
+              <p className="mt-1 text-sm text-gray-600">
+                Request a lesson topic and upvote ideas from other students.
+              </p>
+            </div>
+            <Link
+              to="/topic-requests"
+              className="inline-flex justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+            >
+              Browse Topic Requests
+            </Link>
+          </div>
         </section>
 
         <section aria-labelledby="upcoming-sessions-heading">

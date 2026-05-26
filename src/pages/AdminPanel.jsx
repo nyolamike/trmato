@@ -3,10 +3,12 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { SessionForm } from '../components/SessionForm'
 import { useAuth } from '../hooks/useAuth'
 import { useTeacherEnrollments } from '../hooks/useTeacherEnrollments'
+import { useTeacherTopicRequests } from '../hooks/useTeacherTopicRequests'
 import { useTeacherSessions } from '../hooks/useTeacherSessions'
 import {
   groupPaginatedEnrollmentsBySession,
 } from '../utils/teacherEnrollment'
+import { buildSessionDraftFromTopicRequest } from '../utils/topicRequest'
 import { supabase } from '../utils/supabase'
 
 const TABS = [
@@ -42,6 +44,23 @@ export const AdminPanel = () => {
     clearActionMessage,
   } = useTeacherEnrollments(user?.id)
 
+  const {
+    studentRequests,
+    anonymousRequests,
+    loading: topicRequestsLoading,
+    error: topicRequestsError,
+    updatingId: updatingTopicRequestId,
+    actionMessage: topicRequestActionMessage,
+    refetch: refetchTopicRequests,
+    approveRequest,
+    rejectRequest,
+    clearActionMessage: clearTopicRequestActionMessage,
+  } = useTeacherTopicRequests(user?.id)
+
+  const [rejectingRequestId, setRejectingRequestId] = useState(null)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [requestToCreateSession, setRequestToCreateSession] = useState(null)
+
   const enrollmentPagination = useMemo(
     () => groupPaginatedEnrollmentsBySession(enrollments, enrollmentPage),
     [enrollments, enrollmentPage]
@@ -74,6 +93,49 @@ export const AdminPanel = () => {
   const handleSignOut = async () => {
     await signOut()
     navigate('/')
+  }
+
+  const handleApproveWithoutSession = async (request) => {
+    const result = await approveRequest(request)
+
+    if (result.ok && requestToCreateSession?.id === request.id) {
+      setRequestToCreateSession(null)
+    }
+  }
+
+  const handleStartReject = (request) => {
+    setRequestToCreateSession(null)
+    setRejectingRequestId(request.id)
+    setRejectionReason(request.rejection_reason || '')
+  }
+
+  const handleConfirmReject = async (request) => {
+    const result = await rejectRequest(request, rejectionReason)
+
+    if (result.ok) {
+      setRejectingRequestId(null)
+      setRejectionReason('')
+      if (requestToCreateSession?.id === request.id) {
+        setRequestToCreateSession(null)
+      }
+    }
+  }
+
+  const handleStartSessionCreation = (request) => {
+    setRejectingRequestId(null)
+    setRejectionReason('')
+    setRequestToCreateSession(request)
+  }
+
+  const handleSessionCreatedFromRequest = async (createdSession) => {
+    if (!requestToCreateSession || !createdSession?.id) return
+
+    const result = await approveRequest(requestToCreateSession, createdSession.id)
+
+    if (result.ok) {
+      setRequestToCreateSession(null)
+      await refetchSessions()
+    }
   }
 
   return (
@@ -450,10 +512,255 @@ export const AdminPanel = () => {
         )}
 
         {activeTab === 'topic-requests' && (
-          <ComingSoonState
-            title="Topic request management is staged here"
-            message="This section will host student and anonymous topic requests once that workflow is added."
-          />
+          <div className="grid gap-6">
+            {requestToCreateSession && (
+              <SessionForm
+                key={requestToCreateSession.id}
+                teacherId={user?.id}
+                initialValues={buildSessionDraftFromTopicRequest(
+                  requestToCreateSession
+                )}
+                title="Create Session From Topic Request"
+                description="The selected topic request has already filled in the subject, title, and description. Complete the remaining session details to publish it."
+                submitLabel="Create session and approve request"
+                successMessage="Session created. Linking it to the topic request..."
+                onCancel={() => setRequestToCreateSession(null)}
+                onCreated={handleSessionCreatedFromRequest}
+              />
+            )}
+
+            <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold text-gray-900">
+                    Topic Requests
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Review student demand, handle anonymous submissions, and
+                    turn approved requests into sessions.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={refetchTopicRequests}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+                >
+                  Refresh
+                </button>
+              </div>
+
+              {topicRequestActionMessage && (
+                <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                  <div className="flex items-start justify-between gap-3">
+                    <p>{topicRequestActionMessage}</p>
+                    <button
+                      type="button"
+                      onClick={clearTopicRequestActionMessage}
+                      className="text-emerald-700 hover:text-emerald-900"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {topicRequestsLoading && (
+                <LoadingState message="Loading topic requests..." />
+              )}
+
+              {!topicRequestsLoading && topicRequestsError && (
+                <ErrorState
+                  message={topicRequestsError}
+                  onRetry={refetchTopicRequests}
+                />
+              )}
+
+              {!topicRequestsLoading && !topicRequestsError && (
+                <div className="grid gap-6 xl:grid-cols-2">
+                  <section className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <div className="mb-4">
+                      <h3 className="text-xl font-semibold text-gray-900">
+                        Student Requests
+                      </h3>
+                      <p className="mt-1 text-sm text-gray-600">
+                        Non-anonymous requests sorted by votes.
+                      </p>
+                    </div>
+
+                    {studentRequests.length === 0 ? (
+                      <EmptyState
+                        title="No student requests yet"
+                        message="Public topic requests from signed-in students will appear here."
+                      />
+                    ) : (
+                      <ul className="grid gap-4" aria-label="Student topic requests">
+                        {studentRequests.map((request) => (
+                          <li
+                            key={request.id}
+                            className="rounded-xl border border-gray-200 bg-white p-4"
+                          >
+                            <TopicRequestCard
+                              request={request}
+                              voteLabel={`${request.vote_count || 0} vote${
+                                request.vote_count === 1 ? '' : 's'
+                              }`}
+                              updating={updatingTopicRequestId === request.id}
+                              onApprove={() => handleApproveWithoutSession(request)}
+                              onCreateSession={() =>
+                                handleStartSessionCreation(request)
+                              }
+                              onReject={() => handleStartReject(request)}
+                            />
+
+                            {request.status === 'approved' &&
+                              request.approved_session_id && (
+                                <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+                                  Linked session: {findSessionTitle(
+                                    sessions,
+                                    request.approved_session_id
+                                  ) || request.approved_session_id}
+                                </div>
+                              )}
+
+                            {request.status === 'rejected' &&
+                              request.rejection_reason && (
+                                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                                  Rejection reason: {request.rejection_reason}
+                                </div>
+                              )}
+
+                            {rejectingRequestId === request.id && (
+                              <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                                <label
+                                  htmlFor={`rejection-reason-${request.id}`}
+                                  className="block text-sm font-medium text-gray-700"
+                                >
+                                  Rejection reason (optional)
+                                </label>
+                                <textarea
+                                  id={`rejection-reason-${request.id}`}
+                                  value={rejectionReason}
+                                  onChange={(event) =>
+                                    setRejectionReason(event.target.value)
+                                  }
+                                  rows={3}
+                                  className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                  placeholder="Explain why this request is being rejected."
+                                />
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleConfirmReject(request)}
+                                    disabled={updatingTopicRequestId === request.id}
+                                    className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                  >
+                                    Confirm rejection
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setRejectingRequestId(null)
+                                      setRejectionReason('')
+                                    }}
+                                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+
+                  <section className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <div className="mb-4">
+                      <h3 className="text-xl font-semibold text-gray-900">
+                        Anonymous Requests
+                      </h3>
+                      <p className="mt-1 text-sm text-gray-600">
+                        Private requests sorted by newest first.
+                      </p>
+                    </div>
+
+                    {anonymousRequests.length === 0 ? (
+                      <EmptyState
+                        title="No anonymous requests yet"
+                        message="Anonymous requests will appear here with the contact email provided."
+                      />
+                    ) : (
+                      <ul className="grid gap-4" aria-label="Anonymous topic requests">
+                        {anonymousRequests.map((request) => (
+                          <li
+                            key={request.id}
+                            className="rounded-xl border border-gray-200 bg-white p-4"
+                          >
+                            <TopicRequestCard
+                              request={request}
+                              updating={updatingTopicRequestId === request.id}
+                              onApprove={() => handleApproveWithoutSession(request)}
+                              onReject={() => handleStartReject(request)}
+                            />
+
+                            {request.status === 'rejected' &&
+                              request.rejection_reason && (
+                                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                                  Rejection reason: {request.rejection_reason}
+                                </div>
+                              )}
+
+                            {rejectingRequestId === request.id && (
+                              <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                                <label
+                                  htmlFor={`rejection-reason-${request.id}`}
+                                  className="block text-sm font-medium text-gray-700"
+                                >
+                                  Rejection reason (optional)
+                                </label>
+                                <textarea
+                                  id={`rejection-reason-${request.id}`}
+                                  value={rejectionReason}
+                                  onChange={(event) =>
+                                    setRejectionReason(event.target.value)
+                                  }
+                                  rows={3}
+                                  className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                  placeholder="Explain why this request is being rejected."
+                                />
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleConfirmReject(request)}
+                                    disabled={updatingTopicRequestId === request.id}
+                                    className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                  >
+                                    Confirm rejection
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setRejectingRequestId(null)
+                                      setRejectionReason('')
+                                    }}
+                                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+                </div>
+              )}
+            </section>
+          </div>
         )}
       </div>
     </div>
@@ -591,12 +898,96 @@ const PaymentProofImage = ({ path }) => {
   )
 }
 
-const ComingSoonState = ({ title, message }) => (
-  <section className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center shadow-sm">
-    <h2 className="text-2xl font-semibold text-gray-900">{title}</h2>
-    <p className="mt-2 text-sm text-gray-600">{message}</p>
-  </section>
+const TopicRequestCard = ({
+  request,
+  voteLabel,
+  updating,
+  onApprove,
+  onCreateSession,
+  onReject,
+}) => (
+  <>
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-medium text-blue-700">
+            {request.subject || 'General'}
+          </p>
+          <RequestStatusBadge status={request.status} />
+        </div>
+        <h4 className="mt-1 text-lg font-semibold text-gray-900">
+          {request.topic}
+        </h4>
+        {request.description && (
+          <p className="mt-2 text-sm text-gray-600">{request.description}</p>
+        )}
+        {request.email && (
+          <p className="mt-3 text-sm text-gray-600">
+            Contact: <span className="font-medium text-gray-900">{request.email}</span>
+          </p>
+        )}
+        <p className="mt-2 text-xs text-gray-500">
+          Submitted {formatDateTime(request.created_at)}
+        </p>
+      </div>
+
+      <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+        {voteLabel && (
+          <span className="text-sm font-semibold text-gray-900">{voteLabel}</span>
+        )}
+
+        {request.status === 'pending' && (
+          <div className="flex flex-wrap gap-2 sm:justify-end">
+            <button
+              type="button"
+              onClick={onApprove}
+              disabled={updating}
+              className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Approve
+            </button>
+            {onCreateSession && (
+              <button
+                type="button"
+                onClick={onCreateSession}
+                disabled={updating}
+                className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Approve & create session
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onReject}
+              disabled={updating}
+              className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Reject
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  </>
 )
+
+const RequestStatusBadge = ({ status }) => {
+  const classes = {
+    pending: 'bg-amber-100 text-amber-800',
+    approved: 'bg-emerald-100 text-emerald-800',
+    rejected: 'bg-red-100 text-red-800',
+  }
+
+  return (
+    <span
+      className={`rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${
+        classes[status] || 'bg-gray-200 text-gray-700'
+      }`}
+    >
+      {status || 'unknown'}
+    </span>
+  )
+}
 
 const dateTimeFormatter = new Intl.DateTimeFormat('en-GB', {
   weekday: 'short',
@@ -625,4 +1016,9 @@ const formatPrice = (value) => {
   if (Number.isNaN(numeric)) return 'Price unavailable'
   if (numeric === 0) return 'Free'
   return priceFormatter.format(numeric)
+}
+
+const findSessionTitle = (sessions, sessionId) => {
+  if (!Array.isArray(sessions) || !sessionId) return null
+  return sessions.find((session) => session.id === sessionId)?.title || null
 }

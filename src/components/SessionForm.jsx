@@ -15,9 +15,27 @@ import {
 
 const MEGABYTE = 1024 * 1024
 
-export const SessionForm = ({ teacherId, onCreated }) => {
-  const [values, setValues] = useState(DEFAULT_SESSION_FORM_VALUES)
-  const [tags, setTags] = useState([])
+export const SessionForm = ({
+  teacherId,
+  onCreated,
+  initialValues,
+  initialTags = [],
+  title = 'Create Session',
+  description = 'Publish a new tutoring session with optional preview media and tags.',
+  submitLabel = 'Create session',
+  successMessage = 'Session created successfully.',
+  onCancel,
+}) => {
+  const resolvedInitialValues = useMemo(
+    () => ({
+      ...DEFAULT_SESSION_FORM_VALUES,
+      ...(initialValues || {}),
+    }),
+    [initialValues]
+  )
+
+  const [values, setValues] = useState(resolvedInitialValues)
+  const [tags, setTags] = useState(initialTags)
   const [videoFile, setVideoFile] = useState(null)
   const [thumbnailFile, setThumbnailFile] = useState(null)
   const [errors, setErrors] = useState({})
@@ -73,8 +91,8 @@ export const SessionForm = ({ teacherId, onCreated }) => {
   }
 
   const resetForm = () => {
-    setValues(DEFAULT_SESSION_FORM_VALUES)
-    setTags([])
+    setValues(resolvedInitialValues)
+    setTags(initialTags)
     setVideoFile(null)
     setThumbnailFile(null)
     setErrors({})
@@ -212,10 +230,10 @@ export const SessionForm = ({ teacherId, onCreated }) => {
       }
 
       resetForm()
-      setSubmitMessage('Session created successfully.')
+      setSubmitMessage(successMessage)
       setSubmitWarning(mediaWarnings.join(' '))
 
-      await onCreated?.()
+      await onCreated?.(createdSession)
     } catch (error) {
       console.error('Failed to create session:', error)
       setSubmitError(error.message || 'Unable to create session. Please try again.')
@@ -227,10 +245,8 @@ export const SessionForm = ({ teacherId, onCreated }) => {
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="mb-5">
-        <h2 className="text-2xl font-semibold text-gray-900">Create Session</h2>
-        <p className="mt-1 text-sm text-gray-600">
-          Publish a new tutoring session with optional preview media and tags.
-        </p>
+        <h2 className="text-2xl font-semibold text-gray-900">{title}</h2>
+        <p className="mt-1 text-sm text-gray-600">{description}</p>
       </div>
 
       {submitMessage && (
@@ -434,13 +450,25 @@ export const SessionForm = ({ teacherId, onCreated }) => {
           <p className="text-sm text-gray-500">
             New sessions are published with status <strong>upcoming</strong>.
           </p>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isSubmitting ? 'Creating session...' : 'Create session'}
-          </button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            {onCancel && (
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={isSubmitting}
+                className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmitting ? 'Creating session...' : submitLabel}
+            </button>
+          </div>
         </div>
       </form>
     </section>

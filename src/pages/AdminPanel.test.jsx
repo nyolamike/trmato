@@ -24,8 +24,35 @@ vi.mock('../hooks/useTeacherEnrollments', () => ({
   useTeacherEnrollments: () => mockUseTeacherEnrollments(),
 }))
 
+const mockRefetchTopicRequests = vi.fn()
+const mockApproveRequest = vi.fn()
+const mockRejectRequest = vi.fn()
+const mockClearTopicRequestActionMessage = vi.fn()
+const mockUseTeacherTopicRequests = vi.fn()
+vi.mock('../hooks/useTeacherTopicRequests', () => ({
+  useTeacherTopicRequests: () => mockUseTeacherTopicRequests(),
+}))
+
 vi.mock('../components/SessionForm', () => ({
-  SessionForm: () => <div data-testid="session-form">Session form mock</div>,
+  SessionForm: (props) => (
+    <div data-testid="session-form">
+      <p>{props.title || 'Session form mock'}</p>
+      {props.initialValues?.subject && <p>Prefill subject: {props.initialValues.subject}</p>}
+      {props.initialValues?.title && <p>Prefill title: {props.initialValues.title}</p>}
+      {props.initialValues?.description && (
+        <p>Prefill description: {props.initialValues.description}</p>
+      )}
+      {props.onCreated && (
+        <button
+          type="button"
+          onClick={() => props.onCreated({ id: 'session-created-from-request' })}
+        >
+          Mock create session
+        </button>
+      )}
+      Session form mock
+    </div>
+  ),
 }))
 
 vi.mock('../utils/supabase', () => ({
@@ -78,6 +105,22 @@ const buildEnrollment = (overrides = {}) => ({
   ...overrides,
 })
 
+const buildTopicRequest = (overrides = {}) => ({
+  id: 'request-1',
+  student_id: 'student-1',
+  subject: 'Biology',
+  topic: 'Photosynthesis revision',
+  description: 'Please focus on light and dark stages.',
+  email: 'alice@example.com',
+  status: 'pending',
+  is_anonymous: false,
+  approved_session_id: null,
+  rejection_reason: null,
+  vote_count: 4,
+  created_at: '2030-01-01T12:00:00Z',
+  ...overrides,
+})
+
 const renderAdminPanel = () =>
   render(
     <MemoryRouter>
@@ -122,6 +165,43 @@ describe('AdminPanel', () => {
       rejectEnrollment: mockRejectEnrollment,
       clearActionMessage: mockClearActionMessage,
     })
+
+    mockUseTeacherTopicRequests.mockReturnValue({
+      topicRequests: [
+        buildTopicRequest(),
+        buildTopicRequest({
+          id: 'request-2',
+          student_id: null,
+          is_anonymous: true,
+          email: 'anon@example.com',
+          topic: 'Anonymous chemistry topic',
+          subject: 'Chemistry',
+          status: 'approved',
+          vote_count: 0,
+        }),
+      ],
+      studentRequests: [buildTopicRequest()],
+      anonymousRequests: [
+        buildTopicRequest({
+          id: 'request-2',
+          student_id: null,
+          is_anonymous: true,
+          email: 'anon@example.com',
+          topic: 'Anonymous chemistry topic',
+          subject: 'Chemistry',
+          status: 'approved',
+          vote_count: 0,
+        }),
+      ],
+      loading: false,
+      error: null,
+      updatingId: null,
+      actionMessage: null,
+      refetch: mockRefetchTopicRequests,
+      approveRequest: mockApproveRequest,
+      rejectRequest: mockRejectRequest,
+      clearActionMessage: mockClearTopicRequestActionMessage,
+    })
   })
 
   it('renders the sessions workspace by default with the form, stats, and teacher sessions', () => {
@@ -145,9 +225,11 @@ describe('AdminPanel', () => {
     expect(screen.getByText('Paid via MTN MoMo')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Topic Requests' }))
-    expect(
-      screen.getByText(/student and anonymous topic requests/i)
-    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /topic requests/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /student requests/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /anonymous requests/i })).toBeInTheDocument()
+    expect(screen.getByText('Photosynthesis revision')).toBeInTheDocument()
+    expect(screen.getByText('Anonymous chemistry topic')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Sessions' }))
     expect(screen.getByTestId('session-form')).toBeInTheDocument()
@@ -171,5 +253,47 @@ describe('AdminPanel', () => {
 
     expect(mockApproveEnrollment).toHaveBeenCalledTimes(1)
     expect(mockRejectEnrollment).toHaveBeenCalledTimes(1)
+  })
+
+  it('allows the teacher to approve, reject, and create a session from a topic request', () => {
+    mockApproveRequest.mockResolvedValue({ ok: true })
+    mockRejectRequest.mockResolvedValue({ ok: true })
+
+    renderAdminPanel()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Topic Requests' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
+    expect(mockApproveRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'request-1' })
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /approve & create session/i })
+    )
+    expect(
+      screen.getByText('Create Session From Topic Request')
+    ).toBeInTheDocument()
+    expect(screen.getByText('Prefill subject: Biology')).toBeInTheDocument()
+    expect(
+      screen.getByText('Prefill title: Photosynthesis revision')
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mock create session' }))
+    expect(mockApproveRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'request-1' }),
+      'session-created-from-request'
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reject' }))
+    fireEvent.change(screen.getByLabelText(/rejection reason/i), {
+      target: { value: 'Too broad right now.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /confirm rejection/i }))
+
+    expect(mockRejectRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'request-1' }),
+      'Too broad right now.'
+    )
   })
 })

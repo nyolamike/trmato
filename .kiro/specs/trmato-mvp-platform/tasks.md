@@ -378,8 +378,8 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
 
 ### Phase 8: Topic Request System (20 minutes)
 
-- [ ] 27. Create Topic Request Page (public)
-  - [ ] 27.1 Build TopicRequestPage component
+- [x] 27. Create Topic Request Page (public)
+  - [x] 27.1 Build TopicRequestPage component
     - Fetch approved and pending non-anonymous requests (is_anonymous = false)
     - Display requests sorted by vote_count descending
     - Show subject, topic, description, vote count, status
@@ -388,7 +388,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - Display "Please sign in to vote" for unauthenticated users
     - _Requirements: 20.1, 20.2, 20.8, 20.10_
 
-  - [ ] 27.2 Implement voting functionality
+  - [x] 27.2 Implement voting functionality
     - Handle upvote action: insert into topic_request_votes
     - Handle remove vote action: delete from topic_request_votes
     - Enforce unique constraint (one vote per student per request)
@@ -397,7 +397,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - Require authentication for voting
     - _Requirements: 20.3, 20.4, 20.5, 20.6, 20.7, 20.9_
 
-  - [ ]* 27.3 Write property tests for voting
+  - [x]* 27.3 Write property tests for voting
     - **Property 120: Vote Uniqueness Per Student Per Request**
     - **Validates: Requirements 20.3**
     - **Property 123: Vote Count Update on Vote**
@@ -405,8 +405,8 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - **Property 124: Vote Count Update on Unvote**
     - **Validates: Requirements 20.7**
 
-- [ ] 28. Create Topic Request Form
-  - [ ] 28.1 Build TopicRequestForm component
+- [x] 28. Create Topic Request Form
+  - [x] 28.1 Build TopicRequestForm component
     - Add fields: subject dropdown, topic input, description textarea, email input
     - Show email as required for anonymous users
     - Show email as optional for authenticated users
@@ -419,7 +419,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - Display success message after submission
     - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5, 17.7, 17.8, 17.12_
 
-  - [ ]* 28.2 Write property tests for topic request validation
+  - [x]* 28.2 Write property tests for topic request validation
     - **Property 102: Topic Request Topic Length Validation**
     - **Validates: Requirements 17.2**
     - **Property 104: Anonymous Request Email Requirement**
@@ -427,22 +427,22 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - **Property 106: Topic Request Default Status**
     - **Validates: Requirements 17.6**
 
-- [ ] 29. Add Topic Requests tab to Admin Panel
-  - [ ] 29.1 Display student requests section
+- [x] 29. Add Topic Requests tab to Admin Panel
+  - [x] 29.1 Display student requests section
     - Fetch requests where is_anonymous = false
     - Sort by vote_count descending (highest votes first)
     - Display subject, topic, description, email, vote count, created_at
     - Show status badges (pending/approved/rejected)
     - _Requirements: 19.1, 19.7, 19.12_
 
-  - [ ] 29.2 Display anonymous requests section
+  - [x] 29.2 Display anonymous requests section
     - Fetch requests where is_anonymous = true
     - Sort by created_at descending (newest first)
     - Display subject, topic, description, email, created_at
     - Show status badges
     - _Requirements: 19.2, 19.8, 19.12_
 
-  - [ ] 29.3 Implement approve/reject actions
+  - [x] 29.3 Implement approve/reject actions
     - Add approve button with option to create session
     - Pre-fill session form with request data if creating session
     - Update status to 'approved' and set approved_session_id if session created
@@ -451,7 +451,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - Update status to 'rejected' and store rejection_reason
     - _Requirements: 19.3, 19.4, 19.5, 19.6, 19.10, 19.11_
 
-  - [ ]* 29.4 Write property tests for topic request management
+  - [x]* 29.4 Write property tests for topic request management
     - **Property 112: Student Requests Sorting by Votes**
     - **Validates: Requirements 19.1**
     - **Property 113: Anonymous Requests Sorting by Date**
