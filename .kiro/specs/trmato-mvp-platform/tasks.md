@@ -114,15 +114,15 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
 
 ### Phase 3: Public Landing Page and Session Discovery (25 minutes)
 
-- [ ] 11. Create session data fetching hooks
-  - [ ] 11.1 Implement useUpcomingSessions hook
+- [-] 11. Create session data fetching hooks
+  - [x] 11.1 Implement useUpcomingSessions hook
     - Fetch sessions where status = 'upcoming' ordered by scheduled_at
     - Join with session_tags to include tags array for each session
     - Implement 5-minute cache using React Query or custom caching
     - Handle loading and error states
     - _Requirements: 2.1, 12.1, 15.5_
 
-  - [ ]* 11.2 Write property test for upcoming session filtering
+  - [x] 11.2 Write property test for upcoming session filtering
     - **Property 7: Upcoming Session Filtering**
     - **Validates: Requirements 2.1**
     - Test that all returned sessions have status = 'upcoming'
