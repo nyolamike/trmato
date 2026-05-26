@@ -125,7 +125,7 @@ describe('useUpcomingSessions', () => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(result.current.error).toBe('Database connection failed')
+    expect(result.current.error).toBe('Connection error. Please try again.')
     expect(result.current.sessions).toEqual([])
   })
 

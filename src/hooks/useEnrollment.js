@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
+import {
+  IMAGE_MIME_TYPES_BY_EXTENSION,
+  isFileTypeAllowed,
+  sanitizeTextInput,
+} from '../utils/security'
+import { sanitizeFileName } from '../utils/sessionForm'
 import { supabase } from '../utils/supabase'
+
+const PAYMENT_PROOF_MAX_SIZE_BYTES = 5 * 1024 * 1024
 
 /**
  * useEnrollment
@@ -32,6 +40,7 @@ export function useEnrollment({ sessionId, user }) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [successMessage, setSuccessMessage] = useState(null)
+  const [uploadProgressMessage, setUploadProgressMessage] = useState('')
 
   const studentId = user?.role === 'student' ? user.id : null
 
@@ -78,6 +87,7 @@ export function useEnrollment({ sessionId, user }) {
   const reset = useCallback(() => {
     setError(null)
     setSuccessMessage(null)
+    setUploadProgressMessage('')
   }, [])
 
   const submit = useCallback(
@@ -88,6 +98,7 @@ export function useEnrollment({ sessionId, user }) {
       }
 
       const trimmedNote = typeof note === 'string' ? note.trim() : ''
+      const sanitizedNote = sanitizeTextInput(note)
       const hasScreenshot = screenshot instanceof File
       const hasNote = trimmedNote.length > 0
 
@@ -107,13 +118,28 @@ export function useEnrollment({ sessionId, user }) {
       setSubmitting(true)
       setError(null)
       setSuccessMessage(null)
+      setUploadProgressMessage('')
 
       try {
         let screenshotPath = null
 
         if (hasScreenshot) {
+          if (!isFileTypeAllowed(screenshot, IMAGE_MIME_TYPES_BY_EXTENSION)) {
+            setError('Only JPG and PNG formats are supported')
+            return { ok: false }
+          }
+
+          if (
+            typeof screenshot.size === 'number' &&
+            screenshot.size > PAYMENT_PROOF_MAX_SIZE_BYTES
+          ) {
+            setError('Payment screenshot must be under 5MB')
+            return { ok: false }
+          }
+
+          setUploadProgressMessage('Uploading payment proof...')
           // Path layout: {studentId}/{sessionId}/{timestamp}_{filename}
-          const safeName = screenshot.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+          const safeName = sanitizeFileName(screenshot.name)
           const objectPath = `${studentId}/${sessionId}/${Date.now()}_${safeName}`
 
           const { error: uploadError } = await supabase.storage
@@ -134,7 +160,7 @@ export function useEnrollment({ sessionId, user }) {
             student_id: studentId,
             payment_status: 'pending',
             payment_screenshot: screenshotPath,
-            payment_note: hasNote ? trimmedNote : null,
+            payment_note: hasNote ? sanitizedNote : null,
           })
           .select('id, payment_status, payment_screenshot, payment_note, enrolled_at')
           .single()
@@ -157,6 +183,7 @@ export function useEnrollment({ sessionId, user }) {
         setError(err?.message || 'Failed to submit enrollment. Please try again.')
         return { ok: false }
       } finally {
+        setUploadProgressMessage('')
         setSubmitting(false)
       }
     },
@@ -169,6 +196,7 @@ export function useEnrollment({ sessionId, user }) {
     submitting,
     error,
     successMessage,
+    uploadProgressMessage,
     submit,
     reset,
   }

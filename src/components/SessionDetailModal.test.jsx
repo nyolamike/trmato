@@ -35,6 +35,7 @@ const defaultEnrollment = {
   submitting: false,
   error: null,
   successMessage: null,
+  uploadProgressMessage: '',
   submit: vi.fn().mockResolvedValue({ ok: true }),
   reset: vi.fn(),
 }
@@ -385,6 +386,17 @@ describe('SessionDetailModal', () => {
       renderModal()
       const button = screen.getByRole('button', { name: /submitting/i })
       expect(button).toBeDisabled()
+    })
+
+    it('shows upload progress while payment proof is uploading', () => {
+      mockUseEnrollment.mockReturnValue({
+        ...defaultEnrollment,
+        submitting: true,
+        uploadProgressMessage: 'Uploading payment proof...',
+      })
+      renderModal()
+
+      expect(screen.getByText('Uploading payment proof...')).toBeInTheDocument()
     })
 
     it('surfaces hook-level errors as alert text (Req 11.2)', () => {

@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import * as fc from 'fast-check'
 import {
+  buildSessionInsertPayload,
   getUniqueNormalizedTags,
   SESSION_TITLE_MAX_LENGTH,
   SESSION_TITLE_MIN_LENGTH,
   TAG_MAX_LENGTH,
   TAG_MIN_LENGTH,
+  validateThumbnailFile,
   validateSessionValues,
   validateTag,
   validateVideoFile,
@@ -35,6 +37,52 @@ describe('sessionForm utilities', () => {
     expect(
       getUniqueNormalizedTags(['  Algebra ', 'algebra', 'Kinematics', ''])
     ).toEqual(['algebra', 'kinematics'])
+  })
+
+  it('uses requirement-matching validation messages for date, tags, and uploads', () => {
+    expect(
+      validateSessionValues(buildValidValues({ scheduled_at: '2029-12-31T10:00:00.000Z' }), {
+        now: new Date('2030-01-01T10:00:00.000Z'),
+      }).scheduled_at
+    ).toBe('Session date must be in the future')
+
+    expect(validateTag('')).toBe('Tags must be 1-50 characters')
+    expect(validateTag('a'.repeat(51))).toBe('Tags must be 1-50 characters')
+    expect(validateVideoFile(makeFile('lesson.mov', 'video/quicktime', 1024))).toBe(
+      'Only MP4 and WebM formats are supported'
+    )
+    expect(validateVideoFile(makeFile('lesson.mp4', 'video/webm', 1024))).toBe(
+      'Only MP4 and WebM formats are supported'
+    )
+    expect(
+      validateVideoFile(makeFile('lesson.mp4', 'video/mp4', VIDEO_MAX_SIZE_BYTES + 1))
+    ).toBe('Video file must be under 50MB')
+    expect(validateThumbnailFile(makeFile('thumb.gif', 'image/gif', 100))).toBe(
+      'Only JPG and PNG formats are supported'
+    )
+    expect(validateThumbnailFile(makeFile('thumb.png', 'image/jpeg', 100))).toBe(
+      'Only JPG and PNG formats are supported'
+    )
+    expect(validateThumbnailFile(makeFile('thumb.png', 'image/png', 2 * 1024 * 1024 + 1))).toBe(
+      'Thumbnail must be under 2MB'
+    )
+  })
+
+  it('escapes HTML-sensitive text before building the insert payload', () => {
+    expect(
+      buildSessionInsertPayload(
+        buildValidValues({
+          title: '  <b>Cells</b>  ',
+          description: '  Learn <script>alert(1)</script> safely.  ',
+          payment_name: '  "Coach"  ',
+        }),
+        'teacher-1'
+      )
+    ).toMatchObject({
+      title: '&lt;b&gt;Cells&lt;/b&gt;',
+      description: 'Learn &lt;script&gt;alert(1)&lt;/script&gt; safely.',
+      payment_name: '&quot;Coach&quot;',
+    })
   })
 })
 
@@ -75,19 +123,36 @@ describe('Property 24: Future Date Validation (Req 6.5)', () => {
 
 describe('Property 27: Video Format Validation (Req 6.8)', () => {
   it('accepts only MP4 or WebM video files', () => {
-    const allowedTypes = ['video/mp4', 'video/webm']
+    const allowedPairs = [
+      ['lesson.mp4', 'video/mp4'],
+      ['lesson.webm', 'video/webm'],
+    ]
 
     fc.assert(
       fc.property(
         fc.oneof(
-          fc.constantFrom(...allowedTypes),
+          fc.constantFrom(...allowedPairs),
           fc
-            .string({ minLength: 1, maxLength: 20 })
-            .filter((value) => !allowedTypes.includes(value))
+            .tuple(
+              fc.constantFrom('lesson.bin', 'lesson.mp4', 'lesson.webm'),
+              fc.constantFrom('video/mp4', 'video/webm', 'application/octet-stream')
+            )
+            .filter(
+              ([fileName, mimeType]) =>
+                !allowedPairs.some(
+                  ([allowedName, allowedType]) =>
+                    allowedName === fileName && allowedType === mimeType
+                )
+            )
         ),
-        (mimeType) => {
-          const error = validateVideoFile(makeFile('lesson.bin', mimeType, 1024))
-          expect(Boolean(error)).toBe(!allowedTypes.includes(mimeType))
+        ([fileName, mimeType]) => {
+          const error = validateVideoFile(makeFile(fileName, mimeType, 1024))
+          expect(Boolean(error)).toBe(
+            !allowedPairs.some(
+              ([allowedName, allowedType]) =>
+                allowedName === fileName && allowedType === mimeType
+            )
+          )
         }
       ),
       { numRuns: 60 }

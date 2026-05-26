@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { LoadingSpinner } from '../components/LoadingSpinner'
 import { SessionForm } from '../components/SessionForm'
 import { useAuth } from '../hooks/useAuth'
 import { useTeacherEnrollments } from '../hooks/useTeacherEnrollments'
@@ -800,7 +801,7 @@ const InfoChip = ({ children }) => (
 
 const LoadingState = ({ message }) => (
   <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-    {message}
+    <LoadingSpinner message={message} />
   </div>
 )
 

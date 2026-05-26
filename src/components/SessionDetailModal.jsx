@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useEnrollment } from '../hooks/useEnrollment'
+import { LoadingSpinner } from './LoadingSpinner'
 import { TagPill } from './TagPill'
 
 /**
@@ -303,7 +304,9 @@ const EnrollmentForm = ({ sessionId, user }) => {
     submitting,
     error,
     successMessage,
+    uploadProgressMessage,
     submit,
+    reset,
   } = useEnrollment({ sessionId, user })
 
   const [screenshot, setScreenshot] = useState(null)
@@ -313,7 +316,7 @@ const EnrollmentForm = ({ sessionId, user }) => {
   if (loading) {
     return (
       <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-600">
-        Checking enrollment status…
+        <LoadingSpinner message="Checking enrollment status..." />
       </section>
     )
   }
@@ -351,6 +354,10 @@ const EnrollmentForm = ({ sessionId, user }) => {
 
   const handleFileChange = (event) => {
     const file = event.target.files?.[0] || null
+    if (localError || error) {
+      setLocalError('')
+      reset()
+    }
     setScreenshot(file)
   }
 
@@ -376,7 +383,7 @@ const EnrollmentForm = ({ sessionId, user }) => {
           <input
             id="enrollment-screenshot"
             type="file"
-            accept="image/png,image/jpeg"
+            accept="image/png,image/jpeg,.png,.jpg,.jpeg"
             onChange={handleFileChange}
             disabled={submitting}
             className="mt-1 block w-full text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
@@ -398,7 +405,13 @@ const EnrollmentForm = ({ sessionId, user }) => {
           <textarea
             id="enrollment-note"
             value={note}
-            onChange={(event) => setNote(event.target.value)}
+            onChange={(event) => {
+              if (localError || error) {
+                setLocalError('')
+                reset()
+              }
+              setNote(event.target.value)
+            }}
             disabled={submitting}
             rows={3}
             placeholder="e.g. Sent 5,000 UGX from 0700-... at 14:23"
@@ -415,6 +428,15 @@ const EnrollmentForm = ({ sessionId, user }) => {
           <p role="alert" className="text-sm text-red-700">
             {visibleError}
           </p>
+        )}
+
+        {uploadProgressMessage && (
+          <div
+            role="status"
+            className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800"
+          >
+            {uploadProgressMessage}
+          </div>
         )}
 
         <div className="flex items-center justify-end">

@@ -1,3 +1,5 @@
+import { sanitizeTextInput } from './security'
+
 export const TOPIC_MIN_LENGTH = 5
 export const TOPIC_MAX_LENGTH = 200
 export const DESCRIPTION_MAX_LENGTH = 1000
@@ -42,6 +44,8 @@ export const validateTopicRequestForm = (formData, isAuthenticated) => {
 
   if (!subject) {
     errors.subject = 'Subject is required.'
+  } else if (!TOPIC_REQUEST_SUBJECTS.includes(subject)) {
+    errors.subject = 'Please select a valid subject.'
   }
 
   if (!topic) {
@@ -77,9 +81,9 @@ export const buildTopicRequestInsertPayload = (
   const trimmedEmail = formData?.email?.trim() || ''
 
   return {
-    subject: formData.subject.trim(),
-    topic: formData.topic.trim(),
-    description: formData.description?.trim() || null,
+    subject: sanitizeTextInput(formData.subject),
+    topic: sanitizeTextInput(formData.topic),
+    description: formData.description ? sanitizeTextInput(formData.description) : null,
     email: trimmedEmail || (isAuthenticated ? userEmail || null : null),
     status: REQUEST_STATUS.PENDING,
     is_anonymous: !isAuthenticated,

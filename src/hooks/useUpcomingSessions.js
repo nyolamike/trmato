@@ -110,7 +110,7 @@ export function useUpcomingSessions() {
       setError(null)
     } catch (err) {
       console.error('Error fetching upcoming sessions:', err)
-      setError(err.message || 'Failed to fetch sessions')
+      setError('Connection error. Please try again.')
       
       // If we have cached data, keep showing it even if refresh fails
       if (cacheRef.current.data) {

@@ -1,3 +1,12 @@
+import {
+  getAllowedExtensions,
+  getAllowedMimeTypes,
+  IMAGE_MIME_TYPES_BY_EXTENSION,
+  isFileTypeAllowed,
+  sanitizeTextInput,
+  VIDEO_MIME_TYPES_BY_EXTENSION,
+} from './security'
+
 export const SESSION_TITLE_MIN_LENGTH = 10
 export const SESSION_TITLE_MAX_LENGTH = 200
 export const SESSION_DESCRIPTION_MIN_LENGTH = 20
@@ -5,10 +14,10 @@ export const TAG_MIN_LENGTH = 1
 export const TAG_MAX_LENGTH = 50
 export const VIDEO_MAX_SIZE_BYTES = 50 * 1024 * 1024
 export const THUMBNAIL_MAX_SIZE_BYTES = 2 * 1024 * 1024
-export const ALLOWED_VIDEO_MIME_TYPES = ['video/mp4', 'video/webm']
-export const ALLOWED_THUMBNAIL_MIME_TYPES = ['image/jpeg', 'image/png']
-export const ALLOWED_VIDEO_EXTENSIONS = ['.mp4', '.webm']
-export const ALLOWED_THUMBNAIL_EXTENSIONS = ['.jpg', '.jpeg', '.png']
+export const ALLOWED_VIDEO_MIME_TYPES = getAllowedMimeTypes(VIDEO_MIME_TYPES_BY_EXTENSION)
+export const ALLOWED_THUMBNAIL_MIME_TYPES = getAllowedMimeTypes(IMAGE_MIME_TYPES_BY_EXTENSION)
+export const ALLOWED_VIDEO_EXTENSIONS = getAllowedExtensions(VIDEO_MIME_TYPES_BY_EXTENSION)
+export const ALLOWED_THUMBNAIL_EXTENSIONS = getAllowedExtensions(IMAGE_MIME_TYPES_BY_EXTENSION)
 
 export const DEFAULT_SESSION_FORM_VALUES = {
   title: '',
@@ -21,24 +30,9 @@ export const DEFAULT_SESSION_FORM_VALUES = {
   payment_name: '',
 }
 
-const getLowercaseName = (file) =>
-  typeof file?.name === 'string' ? file.name.toLowerCase() : ''
-
-const hasAllowedFormat = (file, allowedMimeTypes, allowedExtensions) => {
-  if (!file) return true
-
-  const mimeType = typeof file.type === 'string' ? file.type.toLowerCase() : ''
-  const fileName = getLowercaseName(file)
-
-  return (
-    allowedMimeTypes.includes(mimeType) ||
-    allowedExtensions.some((extension) => fileName.endsWith(extension))
-  )
-}
-
 export const normalizeTag = (value) => {
   if (typeof value !== 'string') return ''
-  return value.trim().toLowerCase()
+  return sanitizeTextInput(value).toLowerCase()
 }
 
 export const getUniqueNormalizedTags = (tags) => {
@@ -62,11 +56,11 @@ export const validateTag = (value) => {
   const normalized = normalizeTag(value)
 
   if (!normalized) {
-    return 'Tag must not be empty.'
+    return 'Tags must be 1-50 characters'
   }
 
   if (normalized.length < TAG_MIN_LENGTH || normalized.length > TAG_MAX_LENGTH) {
-    return `Tag must be between ${TAG_MIN_LENGTH} and ${TAG_MAX_LENGTH} characters.`
+    return 'Tags must be 1-50 characters'
   }
 
   return ''
@@ -106,12 +100,12 @@ export const isValidHttpUrl = (value) => {
 export const validateVideoFile = (file) => {
   if (!file) return ''
 
-  if (!hasAllowedFormat(file, ALLOWED_VIDEO_MIME_TYPES, ALLOWED_VIDEO_EXTENSIONS)) {
-    return 'Video must be an MP4 or WebM file.'
+  if (!isFileTypeAllowed(file, VIDEO_MIME_TYPES_BY_EXTENSION)) {
+    return 'Only MP4 and WebM formats are supported'
   }
 
   if (typeof file.size === 'number' && file.size > VIDEO_MAX_SIZE_BYTES) {
-    return 'Video must be 50MB or smaller.'
+    return 'Video file must be under 50MB'
   }
 
   return ''
@@ -120,18 +114,12 @@ export const validateVideoFile = (file) => {
 export const validateThumbnailFile = (file) => {
   if (!file) return ''
 
-  if (
-    !hasAllowedFormat(
-      file,
-      ALLOWED_THUMBNAIL_MIME_TYPES,
-      ALLOWED_THUMBNAIL_EXTENSIONS
-    )
-  ) {
-    return 'Thumbnail must be a JPG or PNG image.'
+  if (!isFileTypeAllowed(file, IMAGE_MIME_TYPES_BY_EXTENSION)) {
+    return 'Only JPG and PNG formats are supported'
   }
 
   if (typeof file.size === 'number' && file.size > THUMBNAIL_MAX_SIZE_BYTES) {
-    return 'Thumbnail must be 2MB or smaller.'
+    return 'Thumbnail must be under 2MB'
   }
 
   return ''
@@ -174,7 +162,7 @@ export const validateSessionValues = (
   if (!scheduledAt) {
     errors.scheduled_at = 'Scheduled date and time are required.'
   } else if (!isFutureScheduledAt(scheduledAt, now)) {
-    errors.scheduled_at = 'Scheduled date and time must be in the future.'
+    errors.scheduled_at = 'Session date must be in the future'
   }
 
   if (safeValues.price_ugx === '' || safeValues.price_ugx === null || safeValues.price_ugx === undefined) {
@@ -227,13 +215,13 @@ export const buildMediaPath = (kind, sessionId, file, timestamp = Date.now()) =>
 }
 
 export const buildSessionInsertPayload = (values, teacherId) => ({
-  title: values.title.trim(),
-  subject: values.subject.trim(),
-  description: values.description.trim(),
+  title: sanitizeTextInput(values.title),
+  subject: sanitizeTextInput(values.subject),
+  description: sanitizeTextInput(values.description),
   scheduled_at: new Date(values.scheduled_at).toISOString(),
   price_ugx: Number(values.price_ugx),
   meet_link: values.meet_link.trim(),
-  payment_number: values.payment_number.trim(),
-  payment_name: values.payment_name.trim(),
+  payment_number: sanitizeTextInput(values.payment_number),
+  payment_name: sanitizeTextInput(values.payment_name),
   created_by: teacherId,
 })

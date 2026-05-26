@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useStudentEnrollments } from '../hooks/useStudentEnrollments'
 import { useStudentTopicRequests } from '../hooks/useStudentTopicRequests'
+import { LoadingSpinner } from '../components/LoadingSpinner'
 import {
   ENROLLMENTS_PER_PAGE,
   getTopicRequestsForStudent,
@@ -373,7 +374,7 @@ const StatusBadge = ({ status }) => {
 
 const DashboardLoading = ({ message }) => (
   <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-    {message}
+    <LoadingSpinner message={message} />
   </div>
 )
 

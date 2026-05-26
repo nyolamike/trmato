@@ -43,6 +43,7 @@ export const SessionForm = ({
   const [submitError, setSubmitError] = useState('')
   const [submitMessage, setSubmitMessage] = useState('')
   const [submitWarning, setSubmitWarning] = useState('')
+  const [uploadProgressMessage, setUploadProgressMessage] = useState('')
 
   const videoPreviewUrl = useMemo(
     () => (videoFile ? URL.createObjectURL(videoFile) : ''),
@@ -96,9 +97,11 @@ export const SessionForm = ({
     setVideoFile(null)
     setThumbnailFile(null)
     setErrors({})
+    setUploadProgressMessage('')
   }
 
-  const uploadMediaFile = async (path, file) => {
+  const uploadMediaFile = async (path, file, progressLabel) => {
+    setUploadProgressMessage(progressLabel)
     const { error } = await supabase.storage.from('media').upload(path, file, {
       cacheControl: '3600',
       upsert: false,
@@ -122,6 +125,7 @@ export const SessionForm = ({
     setSubmitError('')
     setSubmitMessage('')
     setSubmitWarning('')
+    setUploadProgressMessage('')
 
     const normalizedTags = getUniqueNormalizedTags(tags)
     const nextErrors = validateSessionValues(values, { tags: normalizedTags })
@@ -184,12 +188,17 @@ export const SessionForm = ({
 
       const mediaWarnings = []
       const mediaUpdate = {}
+      let videoUploadFailed = false
 
       if (videoFile) {
         try {
           const timestamp = Date.now()
           const videoPath = buildMediaPath('video', createdSession.id, videoFile, timestamp)
-          mediaUpdate.explainer_video = await uploadMediaFile(videoPath, videoFile)
+          mediaUpdate.explainer_video = await uploadMediaFile(
+            videoPath,
+            videoFile,
+            'Uploading video...'
+          )
 
           if (thumbnailFile) {
             const thumbnailPath = buildMediaPath(
@@ -200,14 +209,13 @@ export const SessionForm = ({
             )
             mediaUpdate.video_thumbnail = await uploadMediaFile(
               thumbnailPath,
-              thumbnailFile
+              thumbnailFile,
+              'Uploading thumbnail...'
             )
           }
         } catch (mediaError) {
           console.error('Media upload failed:', mediaError)
-          mediaWarnings.push(
-            'The session was created, but the video or thumbnail upload could not be completed.'
-          )
+          videoUploadFailed = true
         }
       } else if (thumbnailFile) {
         mediaWarnings.push(
@@ -232,12 +240,16 @@ export const SessionForm = ({
       resetForm()
       setSubmitMessage(successMessage)
       setSubmitWarning(mediaWarnings.join(' '))
+      if (videoUploadFailed) {
+        setSubmitError('Failed to upload video. Please try again.')
+      }
 
       await onCreated?.(createdSession)
     } catch (error) {
       console.error('Failed to create session:', error)
       setSubmitError(error.message || 'Unable to create session. Please try again.')
     } finally {
+      setUploadProgressMessage('')
       setIsSubmitting(false)
     }
   }
@@ -258,6 +270,16 @@ export const SessionForm = ({
       {(submitWarning || thumbnailWithoutVideoWarning) && (
         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
           {submitWarning || thumbnailWithoutVideoWarning}
+        </div>
+      )}
+
+      {uploadProgressMessage && (
+        <div
+          role="status"
+          className="mb-4 flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800"
+        >
+          <InlineSpinner />
+          <span>{uploadProgressMessage}</span>
         </div>
       )}
 
@@ -474,6 +496,13 @@ export const SessionForm = ({
     </section>
   )
 }
+
+const InlineSpinner = () => (
+  <span
+    aria-hidden="true"
+    className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-blue-200 border-t-blue-700"
+  />
+)
 
 const FormField = ({
   id,

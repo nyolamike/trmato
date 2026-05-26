@@ -112,6 +112,24 @@ describe('topicRequest utilities', () => {
     })
   })
 
+  it('sanitizes topic request text before building the insert payload', () => {
+    expect(
+      buildTopicRequestInsertPayload(
+        buildValidForm({
+          topic: '  <b>Waves</b>  ',
+          description: '  Use <img src=x onerror=alert(1)> examples.  ',
+        }),
+        {
+          studentId: 'student-1',
+          userEmail: 'student@example.com',
+        }
+      )
+    ).toMatchObject({
+      topic: '&lt;b&gt;Waves&lt;/b&gt;',
+      description: 'Use &lt;img src=x onerror=alert(1)&gt; examples.',
+    })
+  })
+
   describe('Property 120: Vote Uniqueness Per Student Per Request (Req 20.3)', () => {
     it('prevents duplicate votes for the same student/request pair', () => {
       fc.assert(

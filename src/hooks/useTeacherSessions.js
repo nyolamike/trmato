@@ -64,7 +64,7 @@ export const useTeacherSessions = (teacherId) => {
     } catch (fetchError) {
       console.error('Failed to fetch teacher sessions:', fetchError)
       setSessions([])
-      setError('Unable to load your sessions. Please try again.')
+      setError('Connection error. Please try again.')
     } finally {
       setLoading(false)
     }

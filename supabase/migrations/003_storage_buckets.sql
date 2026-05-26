@@ -57,7 +57,16 @@ CREATE POLICY "Teachers can upload media"
 ON storage.objects FOR INSERT
 WITH CHECK (
   bucket_id = 'media' AND
-  auth.uid() IN (SELECT id FROM public.users WHERE role = 'teacher')
+  auth.uid() IN (SELECT id FROM public.users WHERE role = 'teacher') AND
+  (
+    (
+      (storage.foldername(name))[1] = 'videos' AND
+      lower(storage.extension(name)) = ANY (ARRAY['mp4', 'webm'])
+    ) OR (
+      (storage.foldername(name))[1] = 'thumbnails' AND
+      lower(storage.extension(name)) = ANY (ARRAY['jpg', 'jpeg', 'png'])
+    )
+  )
 );
 
 -- Policy: Allow teachers to update their own media files
@@ -97,34 +106,36 @@ CREATE POLICY "Students can upload payment proofs"
 ON storage.objects FOR INSERT
 WITH CHECK (
   bucket_id = 'payment-proofs' AND
-  auth.uid() IN (SELECT id FROM public.users WHERE role = 'student')
+  auth.uid() IN (SELECT id FROM public.users WHERE role = 'student') AND
+  (storage.foldername(name))[1] = auth.uid()::text AND
+  EXISTS (
+    SELECT 1 FROM public.sessions
+    WHERE id::text = (storage.foldername(name))[2]
+  ) AND
+  lower(storage.extension(name)) = ANY (ARRAY['jpg', 'jpeg', 'png'])
 );
 
 -- Policy: Allow enrollment owner student to read their payment proofs (Requirement 10.8)
 -- Students can only view their own payment proof screenshots
--- Path structure: payment-proofs/{enrollment_id}/{timestamp}_{filename}
+-- Path structure: payment-proofs/{student_id}/{session_id}/{timestamp}_{filename}
 CREATE POLICY "Students can read own payment proofs"
 ON storage.objects FOR SELECT
 USING (
   bucket_id = 'payment-proofs' AND
-  auth.uid() IN (
-    SELECT student_id FROM public.enrollments
-    WHERE id::text = (storage.foldername(name))[1]  -- Extract enrollment_id from path
-  )
+  (storage.foldername(name))[1] = auth.uid()::text
 );
 
 -- Policy: Allow session owner teacher to read payment proofs (Requirement 10.8)
 -- Teachers can view payment proofs for enrollments in their sessions
--- Path structure: payment-proofs/{enrollment_id}/{timestamp}_{filename}
+-- Path structure: payment-proofs/{student_id}/{session_id}/{timestamp}_{filename}
 CREATE POLICY "Teachers can read session payment proofs"
 ON storage.objects FOR SELECT
 USING (
   bucket_id = 'payment-proofs' AND
   auth.uid() IN (
-    SELECT s.created_by 
-    FROM public.enrollments e
-    JOIN public.sessions s ON e.session_id = s.id
-    WHERE e.id::text = (storage.foldername(name))[1]  -- Extract enrollment_id from path
+    SELECT created_by
+    FROM public.sessions
+    WHERE id::text = (storage.foldername(name))[2]
   )
 );
 
@@ -134,17 +145,17 @@ CREATE POLICY "Students can update own payment proofs"
 ON storage.objects FOR UPDATE
 USING (
   bucket_id = 'payment-proofs' AND
-  auth.uid() IN (
-    SELECT student_id FROM public.enrollments
-    WHERE id::text = (storage.foldername(name))[1]
-  )
+  (storage.foldername(name))[1] = auth.uid()::text AND
+  lower(storage.extension(name)) = ANY (ARRAY['jpg', 'jpeg', 'png'])
 )
 WITH CHECK (
   bucket_id = 'payment-proofs' AND
-  auth.uid() IN (
-    SELECT student_id FROM public.enrollments
-    WHERE id::text = (storage.foldername(name))[1]
-  )
+  (storage.foldername(name))[1] = auth.uid()::text AND
+  EXISTS (
+    SELECT 1 FROM public.sessions
+    WHERE id::text = (storage.foldername(name))[2]
+  ) AND
+  lower(storage.extension(name)) = ANY (ARRAY['jpg', 'jpeg', 'png'])
 );
 
 -- Policy: Allow students to delete their own payment proofs
@@ -153,10 +164,7 @@ CREATE POLICY "Students can delete own payment proofs"
 ON storage.objects FOR DELETE
 USING (
   bucket_id = 'payment-proofs' AND
-  auth.uid() IN (
-    SELECT student_id FROM public.enrollments
-    WHERE id::text = (storage.foldername(name))[1]
-  )
+  (storage.foldername(name))[1] = auth.uid()::text
 );
 
 -- ============================================================================
@@ -189,8 +197,8 @@ USING (
 -- Thumbnails: media/thumbnails/{session_id}/{timestamp}_{filename}
 --   Example: media/thumbnails/550e8400-e29b-41d4-a716-446655440000/1704067200_thumbnail.jpg
 --
--- Payment proofs: payment-proofs/{enrollment_id}/{timestamp}_{filename}
---   Example: payment-proofs/660e8400-e29b-41d4-a716-446655440000/1704067200_payment.jpg
+-- Payment proofs: payment-proofs/{student_id}/{session_id}/{timestamp}_{filename}
+--   Example: payment-proofs/550e8400-e29b-41d4-a716-446655440000/660e8400-e29b-41d4-a716-446655440000/1704067200_payment.jpg
 
 -- File size limits (enforced at bucket level and in application code):
 --   - Videos: Max 50MB (MP4, WebM)

@@ -11,17 +11,21 @@ export const TagInput = ({
   const [draft, setDraft] = useState('')
   const [localError, setLocalError] = useState('')
 
-  const commitDraft = (rawValue) => {
-    if (!rawValue) return
+  const commitDraft = (rawValue, { showEmptyError = false } = {}) => {
+    if (!rawValue) {
+      if (showEmptyError) {
+        setLocalError('Tags must be 1-50 characters')
+      }
+      return
+    }
 
     const pieces = rawValue
       .split(',')
       .map((tag) => normalizeTag(tag))
-      .filter(Boolean)
 
     if (pieces.length === 0) {
       setDraft('')
-      setLocalError('')
+      setLocalError('Tags must be 1-50 characters')
       return
     }
 
@@ -34,9 +38,12 @@ export const TagInput = ({
         return
       }
 
-      if (!nextTags.includes(piece)) {
-        nextTags.push(piece)
+      if (nextTags.includes(piece)) {
+        setLocalError('Tag already added')
+        return
       }
+
+      nextTags.push(piece)
     }
 
     onChange?.(getUniqueNormalizedTags(nextTags))
@@ -86,7 +93,7 @@ export const TagInput = ({
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ',') {
               event.preventDefault()
-              commitDraft(draft)
+              commitDraft(draft, { showEmptyError: true })
             }
           }}
           onBlur={() => commitDraft(draft)}

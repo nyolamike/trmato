@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useTopicRequests } from '../hooks/useTopicRequests'
 import { TopicRequestForm } from '../components/TopicRequestForm'
+import { LoadingSpinner } from '../components/LoadingSpinner'
 import { hasStudentVoted } from '../utils/topicRequest'
 
 export const TopicRequestPage = () => {
@@ -132,7 +133,7 @@ export const TopicRequestPage = () => {
 
             {loading && (
               <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-600">
-                Loading topic requests…
+                <LoadingSpinner message="Loading topic requests..." />
               </div>
             )}
 

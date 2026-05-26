@@ -42,8 +42,8 @@ const existingEnrollmentArb = fc.record({
   payment_status: fc.constantFrom('pending', 'approved', 'rejected'),
 })
 
-const buildScreenshot = (name = 'proof.png', type = 'image/png') =>
-  new File(['proof'], name, { type })
+const buildScreenshot = (name = 'proof.png', type = 'image/png', size = 5) =>
+  new File([new Uint8Array(size)], name, { type })
 
 const setupEnrollmentSupabaseMocks = ({
   existingEnrollment = null,
@@ -273,4 +273,79 @@ describe('useEnrollment', () => {
     expect(mocks.insert).toHaveBeenCalledTimes(1)
     expect(mocks.maybeSingle).toHaveBeenCalledTimes(2)
   }, 10000)
+
+  it('rejects screenshots whose MIME type and extension do not agree', async () => {
+    const mocks = setupEnrollmentSupabaseMocks()
+
+    const { result } = renderHook(() =>
+      useEnrollment({
+        sessionId: 'session-1',
+        user: studentUser,
+      })
+    )
+
+    await settleInitialLookup(mocks.maybeSingle)
+
+    let submitResult
+    await act(async () => {
+      submitResult = await result.current.submit({
+        screenshot: buildScreenshot('proof.png', 'image/jpeg'),
+      })
+    })
+
+    expect(submitResult).toEqual({ ok: false })
+    expect(result.current.error).toBe('Only JPG and PNG formats are supported')
+    expect(mocks.upload).not.toHaveBeenCalled()
+    expect(mocks.insert).not.toHaveBeenCalled()
+  })
+
+  it('rejects payment screenshots larger than 5MB', async () => {
+    const mocks = setupEnrollmentSupabaseMocks()
+
+    const { result } = renderHook(() =>
+      useEnrollment({
+        sessionId: 'session-1',
+        user: studentUser,
+      })
+    )
+
+    await settleInitialLookup(mocks.maybeSingle)
+
+    let submitResult
+    await act(async () => {
+      submitResult = await result.current.submit({
+        screenshot: buildScreenshot('proof.png', 'image/png', 5 * 1024 * 1024 + 1),
+      })
+    })
+
+    expect(submitResult).toEqual({ ok: false })
+    expect(result.current.error).toBe('Payment screenshot must be under 5MB')
+    expect(mocks.upload).not.toHaveBeenCalled()
+    expect(mocks.insert).not.toHaveBeenCalled()
+  })
+
+  it('sanitizes payment notes before inserting the enrollment', async () => {
+    const mocks = setupEnrollmentSupabaseMocks()
+
+    const { result } = renderHook(() =>
+      useEnrollment({
+        sessionId: 'session-1',
+        user: studentUser,
+      })
+    )
+
+    await settleInitialLookup(mocks.maybeSingle)
+
+    await act(async () => {
+      await result.current.submit({
+        note: '  Paid with <script>alert(1)</script>  ',
+      })
+    })
+
+    expect(mocks.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payment_note: 'Paid with &lt;script&gt;alert(1)&lt;/script&gt;',
+      })
+    )
+  })
 })

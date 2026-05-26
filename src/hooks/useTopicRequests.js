@@ -115,7 +115,17 @@ export const useTopicRequests = (studentId) => {
               student_id: studentId,
             })
 
-          if (insertError) throw insertError
+          if (insertError) {
+            if (insertError.code === '23505') {
+              setUserVotes((currentVotes) =>
+                currentVotes.includes(requestId)
+                  ? currentVotes
+                  : [...currentVotes, requestId]
+              )
+              return { ok: true }
+            }
+            throw insertError
+          }
 
           setUserVotes((currentVotes) => [...currentVotes, requestId])
           setTopicRequests((currentRequests) =>
