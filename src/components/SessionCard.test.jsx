@@ -177,7 +177,8 @@ describe('SessionCard', () => {
     })
 
     it('handles a missing tags property safely', () => {
-      const { tags: _omit, ...sessionWithoutTags } = baseSession
+      const sessionWithoutTags = { ...baseSession }
+      delete sessionWithoutTags.tags
       expect(() =>
         render(<SessionCard session={sessionWithoutTags} />)
       ).not.toThrow()

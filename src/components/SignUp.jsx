@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useAuth } from '../contexts/AuthContext'
+import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 
 const SignUp = ({ onSuccess, onSwitchToSignIn }) => {
@@ -14,17 +14,19 @@ const SignUp = ({ onSuccess, onSwitchToSignIn }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [serverError, setServerError] = useState('')
   const [shouldRedirect, setShouldRedirect] = useState(false)
+  // Latch so the navigate-after-signup effect only fires once even before the
+  // component unmounts (avoids setState-in-effect for the reset flag).
+  const hasRedirectedRef = useRef(false)
 
   // Email validation regex
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-  // Handle redirect after successful signup
   useEffect(() => {
-    if (shouldRedirect && user && !onSuccess) {
-      // New users default to 'student' role, redirect to dashboard
-      navigate('/dashboard')
-      setShouldRedirect(false)
-    }
+    if (!shouldRedirect || !user || onSuccess) return
+    if (hasRedirectedRef.current) return
+    hasRedirectedRef.current = true
+    // New users default to 'student' role, redirect to dashboard
+    navigate('/dashboard')
   }, [shouldRedirect, user, navigate, onSuccess])
 
   const validateForm = () => {

@@ -250,7 +250,6 @@ describe('SignUp Component', () => {
 
   describe('Form Submission - Requirement 1.1', () => {
     it('should call signUp with correct parameters on valid submission', async () => {
-      const mockSignUp = vi.fn().mockResolvedValue({ data: { user: { id: '123' } }, error: null })
       supabase.auth.signUp.mockResolvedValue({ data: { user: { id: '123' } }, error: null })
       
       // Mock the profile fetch with proper chaining

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useAuth } from '../contexts/AuthContext'
+import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 
 const SignIn = ({ onSuccess, onSwitchToSignUp }) => {
@@ -16,20 +16,22 @@ const SignIn = ({ onSuccess, onSwitchToSignUp }) => {
   const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false)
   const [resendStatus, setResendStatus] = useState('idle') // 'idle' | 'sending' | 'sent' | 'error'
   const [resendError, setResendError] = useState('')
+  // Latch so the navigate-after-login effect only fires once even before the
+  // component unmounts (avoids setState-in-effect for the reset flag).
+  const hasRedirectedRef = useRef(false)
 
   // Email validation regex
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-  // Handle redirect after successful login
   useEffect(() => {
-    if (shouldRedirect && user && !onSuccess) {
-      // Role-based redirect: students → Student_Dashboard, teachers → Admin_Panel
-      if (user.role === 'teacher') {
-        navigate('/admin')
-      } else {
-        navigate('/dashboard')
-      }
-      setShouldRedirect(false)
+    if (!shouldRedirect || !user || onSuccess) return
+    if (hasRedirectedRef.current) return
+    hasRedirectedRef.current = true
+    // Role-based redirect: students → Student_Dashboard, teachers → Admin_Panel
+    if (user.role === 'teacher') {
+      navigate('/admin')
+    } else {
+      navigate('/dashboard')
     }
   }, [shouldRedirect, user, navigate, onSuccess])
 

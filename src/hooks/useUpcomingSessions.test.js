@@ -187,14 +187,17 @@ describe('useUpcomingSessions', () => {
             subject: fc.constantFrom('Biology', 'Physics', 'Chemistry', 'Mathematics'),
             description: fc.string({ minLength: 20, maxLength: 500 }),
             status: fc.constantFrom('upcoming', 'completed', 'cancelled'),
-            scheduled_at: fc.date({ min: new Date('2024-01-01'), max: new Date('2025-12-31') })
-              .map(d => d.toISOString()),
+            scheduled_at: fc.date({
+              min: new Date('2024-01-01'),
+              max: new Date('2025-12-31'),
+              noInvalidDate: true,
+            }).map(d => d.toISOString()),
             price_ugx: fc.integer({ min: 1000, max: 50000 }),
             meet_link: fc.webUrl(),
             payment_number: fc.string({ minLength: 10, maxLength: 15 }),
             payment_name: fc.string({ minLength: 3, maxLength: 50 }),
             created_by: fc.uuid(),
-            created_at: fc.date().map(d => d.toISOString()),
+            created_at: fc.date({ noInvalidDate: true }).map(d => d.toISOString()),
             explainer_video: fc.option(fc.webUrl(), { nil: null }),
             video_thumbnail: fc.option(fc.webUrl(), { nil: null })
           }),
@@ -260,14 +263,17 @@ describe('useUpcomingSessions', () => {
             subject: fc.constantFrom('Biology', 'Physics', 'Chemistry', 'Mathematics'),
             description: fc.string({ minLength: 20, maxLength: 500 }),
             status: fc.constantFrom('upcoming', 'completed', 'cancelled'),
-            scheduled_at: fc.date({ min: new Date('2024-01-01'), max: new Date('2025-12-31') })
-              .map(d => d.toISOString()),
+            scheduled_at: fc.date({
+              min: new Date('2024-01-01'),
+              max: new Date('2025-12-31'),
+              noInvalidDate: true,
+            }).map(d => d.toISOString()),
             price_ugx: fc.integer({ min: 1000, max: 50000 }),
             meet_link: fc.webUrl(),
             payment_number: fc.string({ minLength: 10, maxLength: 15 }),
             payment_name: fc.string({ minLength: 3, maxLength: 50 }),
             created_by: fc.uuid(),
-            created_at: fc.date().map(d => d.toISOString()),
+            created_at: fc.date({ noInvalidDate: true }).map(d => d.toISOString()),
             explainer_video: fc.option(fc.webUrl(), { nil: null }),
             video_thumbnail: fc.option(fc.webUrl(), { nil: null })
           }),

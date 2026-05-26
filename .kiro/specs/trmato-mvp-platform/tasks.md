@@ -156,8 +156,8 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - Test tag pills are rendered
     - _Requirements: 2.2_
 
-- [ ] 13. Implement search and filter functionality
-  - [ ] 13.1 Create SearchFilterBar component
+- [x] 13. Implement search and filter functionality
+  - [x] 13.1 Create SearchFilterBar component
     - Add search input with 300ms debounce
     - Add subject dropdown filter
     - Display popular tags (top 10 by usage) as clickable pills
@@ -165,7 +165,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - Show "Clear All Filters" button when filters active
     - _Requirements: 16.1, 16.2, 16.5, 16.7, 16.8, 16.9, 16.10, 16.13_
 
-  - [ ] 13.2 Implement filter logic in LandingPage
+  - [x] 13.2 Implement filter logic in LandingPage
     - Apply text search on title and description (case-insensitive)
     - Apply subject filter (exact match)
     - Apply tag filters (AND logic for multiple tags)
@@ -173,7 +173,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - Display "No sessions found" message when results empty
     - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.11, 16.12_
 
-  - [ ]* 13.3 Write property tests for filtering logic
+  - [x]* 13.3 Write property tests for filtering logic
     - **Property 74: Text Search Filtering**
     - **Validates: Requirements 16.1**
     - **Property 75: Subject Filter Application**
@@ -183,7 +183,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - **Property 77: Combined Filter AND Logic**
     - **Validates: Requirements 16.4**
 
-- [ ] 14. Create TagPill component
+- [x] 14. Create TagPill component
   - Render tag as styled badge with Tailwind CSS
   - Support variants: default, active, removable
   - Handle click events for filtering
@@ -191,7 +191,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
   - Responsive sizing (small on mobile, medium on desktop)
   - _Requirements: 15.10, 16.14_
 
-- [ ] 15. Checkpoint - Ensure landing page and filtering work correctly
+- [x] 15. Checkpoint - Ensure landing page and filtering work correctly
   - Ensure all tests pass, ask the user if questions arise.
 
 ### Phase 4: Session Detail Modal with Video Player (20 minutes)

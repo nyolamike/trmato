@@ -1,32 +1,76 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import { useUpcomingSessions } from '../hooks/useUpcomingSessions'
 import { SessionCard } from '../components/SessionCard'
+import { SearchFilterBar } from '../components/SearchFilterBar'
+import {
+  computePopularTags,
+  extractSubjects,
+  filterSessions,
+} from '../utils/sessionFilters'
 
 /**
  * LandingPage
  *
  * Public landing page that displays all upcoming sessions in a mobile-first
- * responsive grid. Unauthenticated users can browse; authenticated users see
- * a dashboard shortcut.
+ * responsive grid with search and filter controls.
  *
- * Validates: Requirements 2.1, 2.5, 14.3, 14.4
+ * Validates: Requirements 2.1, 2.5, 14.3, 14.4, 16.1, 16.2, 16.3, 16.4,
+ *            16.5, 16.6, 16.9, 16.11, 16.12
  */
 export const LandingPage = () => {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [message, setMessage] = useState('')
   const { sessions, loading, error, refetch } = useUpcomingSessions()
 
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedSubject, setSelectedSubject] = useState(null)
+  const [selectedTags, setSelectedTags] = useState([])
+
+  // Flash-message handling.
+  // `stateMessage` is derived from navigation state (no state-sync effect
+  // needed). `dismissedStateMessage` is set asynchronously after a 5s
+  // timeout to hide it. `localMessage` is set by local event handlers
+  // (e.g. sign-out) and auto-clears the same way.
+  const stateMessage = location.state?.message ?? ''
+  const [dismissedStateMessage, setDismissedStateMessage] = useState(null)
+  const [localMessage, setLocalMessage] = useState('')
+
   useEffect(() => {
-    if (location.state?.message) {
-      setMessage(location.state.message)
-      const timer = setTimeout(() => setMessage(''), 5000)
-      return () => clearTimeout(timer)
-    }
-  }, [location.state])
+    if (!stateMessage) return undefined
+    const timer = setTimeout(() => setDismissedStateMessage(stateMessage), 5000)
+    return () => clearTimeout(timer)
+  }, [stateMessage])
+
+  useEffect(() => {
+    if (!localMessage) return undefined
+    const timer = setTimeout(() => setLocalMessage(''), 5000)
+    return () => clearTimeout(timer)
+  }, [localMessage])
+
+  const message =
+    localMessage ||
+    (stateMessage && dismissedStateMessage !== stateMessage ? stateMessage : '')
+
+  const subjects = useMemo(() => extractSubjects(sessions), [sessions])
+  const popularTags = useMemo(() => computePopularTags(sessions, 10), [sessions])
+
+  const filteredSessions = useMemo(
+    () =>
+      filterSessions(sessions, {
+        searchQuery,
+        subject: selectedSubject,
+        tags: selectedTags,
+      }),
+    [sessions, searchQuery, selectedSubject, selectedTags]
+  )
+
+  const hasActiveFilters =
+    Boolean(searchQuery) ||
+    Boolean(selectedSubject) ||
+    selectedTags.length > 0
 
   const handleDashboardClick = () => {
     if (user?.role === 'student') {
@@ -38,18 +82,33 @@ export const LandingPage = () => {
 
   const handleSignOut = async () => {
     await signOut()
-    setMessage('You have been signed out successfully')
+    setLocalMessage('You have been signed out successfully')
   }
 
-  // Session_Modal is implemented in Task 16. For now we just log so the
-  // click contract is exercised end-to-end and easy to wire up later.
+  // Holds the currently-selected session id. The Session_Modal will be wired
+  // up to this in Task 16; for now we just track the selection so the click
+  // contract is exercised end-to-end.
+  const [selectedSessionId, setSelectedSessionId] = useState(null)
   const handleSessionClick = (session) => {
-    // eslint-disable-next-line no-console
-    console.log('Session selected:', session.id)
+    setSelectedSessionId(session.id)
+  }
+
+  const handleTagToggle = (tag) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    )
+  }
+
+  const handleClearFilters = () => {
+    setSearchQuery('')
+    setSelectedSubject(null)
+    setSelectedTags([])
   }
 
   const isMessageError =
     message.includes('denied') || message.includes('sign in')
+
+  const sessionsAvailable = sessions.length > 0
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -142,28 +201,61 @@ export const LandingPage = () => {
             </div>
           </div>
 
+          {sessionsAvailable && !loading && !error && (
+            <SearchFilterBar
+              searchQuery={searchQuery}
+              selectedSubject={selectedSubject}
+              selectedTags={selectedTags}
+              subjects={subjects}
+              popularTags={popularTags}
+              onSearchChange={setSearchQuery}
+              onSubjectChange={setSelectedSubject}
+              onTagToggle={handleTagToggle}
+              onClearFilters={handleClearFilters}
+            />
+          )}
+
           {loading && <SessionGridSkeleton />}
 
           {!loading && error && (
             <ErrorState message={error} onRetry={refetch} />
           )}
 
-          {!loading && !error && sessions.length === 0 && <EmptyState />}
+          {!loading && !error && !sessionsAvailable && <EmptyState />}
 
-          {!loading && !error && sessions.length > 0 && (
+          {!loading &&
+            !error &&
+            sessionsAvailable &&
+            filteredSessions.length === 0 && (
+              <NoMatchesState onClearFilters={handleClearFilters} />
+            )}
+
+          {!loading && !error && filteredSessions.length > 0 && (
             <ul
               className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
               aria-label="Upcoming sessions list"
             >
-              {sessions.map((session) => (
-                <li key={session.id}>
+              {filteredSessions.map((session) => (
+                <li
+                  key={session.id}
+                  aria-current={
+                    selectedSessionId === session.id ? 'true' : undefined
+                  }
+                >
                   <SessionCard
                     session={session}
                     onClick={handleSessionClick}
+                    onTagClick={handleTagToggle}
                   />
                 </li>
               ))}
             </ul>
+          )}
+
+          {!loading && !error && hasActiveFilters && filteredSessions.length > 0 && (
+            <p className="mt-4 text-sm text-gray-600" aria-live="polite">
+              Showing {filteredSessions.length} of {sessions.length} sessions
+            </p>
           )}
         </section>
       </div>
@@ -202,6 +294,26 @@ const EmptyState = () => (
     <p className="mt-1 text-sm text-gray-600">
       Check back soon — new sessions are added regularly.
     </p>
+  </div>
+)
+
+const NoMatchesState = ({ onClearFilters }) => (
+  <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
+    <h3 className="text-lg font-semibold text-gray-900">
+      No sessions found. Try adjusting your filters.
+    </h3>
+    <p className="mt-1 text-sm text-gray-600">
+      Try a different search term, subject, or tag.
+    </p>
+    {onClearFilters && (
+      <button
+        type="button"
+        onClick={onClearFilters}
+        className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+      >
+        Clear all filters
+      </button>
+    )}
   </div>
 )
 

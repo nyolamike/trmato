@@ -1,3 +1,5 @@
+import { TagPill } from './TagPill'
+
 /**
  * SessionCard
  *
@@ -53,11 +55,6 @@ export const SessionCard = ({ session, onClick, onTagClick }) => {
     }
   }
 
-  const handleTagClick = (event, tag) => {
-    event.stopPropagation()
-    onTagClick?.(tag)
-  }
-
   return (
     <article
       role="button"
@@ -80,13 +77,7 @@ export const SessionCard = ({ session, onClick, onTagClick }) => {
         <ul className="mb-3 flex flex-wrap gap-1.5" aria-label="Session tags">
           {tags.map((tag) => (
             <li key={tag}>
-              <button
-                type="button"
-                onClick={(event) => handleTagClick(event, tag)}
-                className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 hover:bg-blue-100 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              >
-                #{tag}
-              </button>
+              <TagPill tag={tag} size="small" onClick={onTagClick} />
             </li>
           ))}
         </ul>

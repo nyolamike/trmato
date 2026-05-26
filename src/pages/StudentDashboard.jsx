@@ -1,4 +1,4 @@
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 
@@ -6,17 +6,23 @@ export const StudentDashboard = () => {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [message, setMessage] = useState('')
+
+  // Flash-message handling: derive the message from navigation state and use
+  // an async setState only to dismiss it after 5s (avoids set-state-in-effect).
+  const stateMessage = location.state?.message ?? ''
+  const [dismissedStateMessage, setDismissedStateMessage] = useState(null)
 
   useEffect(() => {
-    // Display any messages passed via navigation state
-    if (location.state?.message) {
-      setMessage(location.state.message)
-      // Clear the message after 5 seconds
-      const timer = setTimeout(() => setMessage(''), 5000)
-      return () => clearTimeout(timer)
-    }
-  }, [location.state])
+    if (!stateMessage) return undefined
+    const timer = setTimeout(
+      () => setDismissedStateMessage(stateMessage),
+      5000
+    )
+    return () => clearTimeout(timer)
+  }, [stateMessage])
+
+  const message =
+    stateMessage && dismissedStateMessage !== stateMessage ? stateMessage : ''
 
   const handleSignOut = async () => {
     await signOut()
