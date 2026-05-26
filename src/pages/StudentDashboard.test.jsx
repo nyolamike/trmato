@@ -246,4 +246,42 @@ describe('StudentDashboard', () => {
     expect(mockRefetchEnrollments).toHaveBeenCalledTimes(1)
     expect(mockRefetchTopicRequests).toHaveBeenCalledTimes(1)
   })
+
+  it('uses mobile-first classes for header actions, view toggles, and pagination controls', () => {
+    const enrollments = Array.from({ length: 21 }, (_, index) =>
+      buildEnrollment({
+        id: `enrollment-${index + 1}`,
+        session: {
+          ...buildEnrollment().session,
+          id: `session-${index + 1}`,
+          title: `Session ${index + 1}`,
+          scheduled_at: `2030-01-${String(index + 1).padStart(2, '0')}T10:00:00Z`,
+        },
+      })
+    )
+
+    mockUseStudentEnrollments.mockReturnValue({
+      enrollments,
+      loading: false,
+      error: null,
+      refetch: mockRefetchEnrollments,
+    })
+
+    renderDashboard()
+
+    expect(screen.getByRole('button', { name: /^home$/i }).className).toMatch(/\bw-full\b/)
+    expect(screen.getByRole('button', { name: /^home$/i }).className).toMatch(
+      /\bsm:w-auto\b/
+    )
+    expect(
+      screen.getByRole('button', { name: /upcoming \(21\)/i }).className
+    ).toMatch(/\bw-full\b/)
+    expect(
+      screen.getByRole('button', { name: /upcoming \(21\)/i }).className
+    ).toMatch(/\bsm:w-auto\b/)
+    expect(screen.getByRole('button', { name: /^next$/i }).className).toMatch(/\bw-full\b/)
+    expect(screen.getByRole('button', { name: /^next$/i }).className).toMatch(
+      /\bsm:w-auto\b/
+    )
+  })
 })

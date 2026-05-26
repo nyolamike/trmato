@@ -103,7 +103,7 @@ export const SessionDetailModal = ({ session, isOpen, onClose, onTagClick }) => 
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
-      className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 sm:py-10"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-3 py-4 sm:px-4 sm:py-10"
     >
       <button
         type="button"
@@ -113,7 +113,7 @@ export const SessionDetailModal = ({ session, isOpen, onClose, onTagClick }) => 
         className="absolute inset-0 h-full w-full cursor-default bg-black/60"
       />
 
-      <div className="relative z-10 flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 my-auto flex max-h-[calc(100vh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100vh-5rem)]">
         <div className="flex items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
           <div className="min-w-0">
             <span className="inline-block rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
@@ -202,7 +202,54 @@ export const SessionDetailModal = ({ session, isOpen, onClose, onTagClick }) => 
 }
 
 const SessionVideo = ({ src, poster }) => {
+  const videoRef = useRef(null)
   const [hasError, setHasError] = useState(false)
+  const [showManualPlay, setShowManualPlay] = useState(false)
+
+  useEffect(() => {
+    setHasError(false)
+    setShowManualPlay(false)
+  }, [src])
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return undefined
+
+    const playAttempt = video.play?.()
+    if (!playAttempt || typeof playAttempt.then !== 'function') {
+      return undefined
+    }
+
+    let cancelled = false
+
+    playAttempt
+      .then(() => {
+        if (!cancelled) {
+          setShowManualPlay(false)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setShowManualPlay(true)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [src])
+
+  const handleManualPlay = async () => {
+    try {
+      const playAttempt = videoRef.current?.play?.()
+      if (playAttempt && typeof playAttempt.then === 'function') {
+        await playAttempt
+      }
+      setShowManualPlay(false)
+    } catch {
+      setShowManualPlay(true)
+    }
+  }
 
   if (hasError) {
     return (
@@ -216,8 +263,9 @@ const SessionVideo = ({ src, poster }) => {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl bg-black">
+    <div className="relative aspect-video overflow-hidden rounded-xl bg-black">
       <video
+        ref={videoRef}
         data-testid="session-video"
         src={src}
         poster={poster}
@@ -226,11 +274,24 @@ const SessionVideo = ({ src, poster }) => {
         controls
         playsInline
         preload="metadata"
+        onPlay={() => setShowManualPlay(false)}
         onError={() => setHasError(true)}
-        className="block h-auto w-full max-w-full"
+        className="block h-full w-full object-contain"
       >
         Your browser does not support embedded video playback.
       </video>
+
+      {showManualPlay && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/45 p-4">
+          <button
+            type="button"
+            onClick={handleManualPlay}
+            className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-gray-900 shadow-lg transition hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            Tap to play video
+          </button>
+        </div>
+      )}
     </div>
   )
 }

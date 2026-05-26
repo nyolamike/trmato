@@ -90,22 +90,22 @@ export const StudentDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <header className="flex justify-between items-center mb-8">
+      <div className="container mx-auto px-4 py-8 sm:py-10">
+        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Student Dashboard</h1>
             <p className="text-gray-600">Welcome, {user?.username}!</p>
           </div>
-          <div className="flex gap-4">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <button
               onClick={() => navigate('/')}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              className="w-full rounded-lg bg-gray-600 px-4 py-2 text-white transition-colors hover:bg-gray-700 sm:w-auto"
             >
               Home
             </button>
             <button
               onClick={handleSignOut}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              className="w-full rounded-lg bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700 sm:w-auto"
             >
               Sign Out
             </button>
@@ -135,12 +135,12 @@ export const StudentDashboard = () => {
                 </p>
               </div>
 
-              <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
+              <div className="flex w-full flex-col rounded-lg border border-gray-200 bg-gray-50 p-1 sm:inline-flex sm:w-auto sm:flex-row">
                 <button
                   type="button"
                   onClick={() => handleEnrollmentViewChange('upcoming')}
                   aria-pressed={enrollmentView === 'upcoming'}
-                  className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                  className={`w-full rounded-md px-3 py-2 text-sm font-medium transition sm:w-auto ${
                     enrollmentView === 'upcoming'
                       ? 'bg-blue-600 text-white'
                       : 'text-gray-700 hover:bg-gray-100'
@@ -152,7 +152,7 @@ export const StudentDashboard = () => {
                   type="button"
                   onClick={() => handleEnrollmentViewChange('past')}
                   aria-pressed={enrollmentView === 'past'}
-                  className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                  className={`w-full rounded-md px-3 py-2 text-sm font-medium transition sm:w-auto ${
                     enrollmentView === 'past'
                       ? 'bg-blue-600 text-white'
                       : 'text-gray-700 hover:bg-gray-100'
@@ -246,16 +246,16 @@ export const StudentDashboard = () => {
                 </ul>
 
                 {totalPages > 1 && (
-                  <div className="mt-5 flex items-center justify-between gap-3">
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-gray-600">
                       Page {safePage} of {totalPages}
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                       <button
                         type="button"
                         disabled={safePage === 1}
                         onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                       >
                         Previous
                       </button>
@@ -265,7 +265,7 @@ export const StudentDashboard = () => {
                         onClick={() =>
                           setCurrentPage((page) => Math.min(totalPages, page + 1))
                         }
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                       >
                         Next
                       </button>

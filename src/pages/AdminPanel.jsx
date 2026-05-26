@@ -141,22 +141,22 @@ export const AdminPanel = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 sm:py-10">
         <header className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Teacher Admin Panel</h1>
             <p className="mt-1 text-gray-600">Welcome, {user?.username}!</p>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
             <button
               onClick={() => navigate('/')}
-              className="rounded-lg bg-gray-600 px-4 py-2 text-white transition hover:bg-gray-700"
+              className="w-full rounded-lg bg-gray-600 px-4 py-2 text-white transition hover:bg-gray-700 sm:w-auto"
             >
               Home
             </button>
             <button
               onClick={handleSignOut}
-              className="rounded-lg bg-red-600 px-4 py-2 text-white transition hover:bg-red-700"
+              className="w-full rounded-lg bg-red-600 px-4 py-2 text-white transition hover:bg-red-700 sm:w-auto"
             >
               Sign Out
             </button>
@@ -187,14 +187,14 @@ export const AdminPanel = () => {
               </p>
             </div>
 
-            <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
+            <div className="grid w-full grid-cols-1 rounded-lg border border-gray-200 bg-gray-50 p-1 sm:inline-grid sm:w-auto sm:grid-cols-3">
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
                   aria-pressed={activeTab === tab.id}
-                  className={`rounded-md px-4 py-2 text-sm font-medium transition ${
+                  className={`w-full rounded-md px-4 py-2 text-sm font-medium transition ${
                     activeTab === tab.id
                       ? 'bg-blue-600 text-white'
                       : 'text-gray-700 hover:bg-gray-100'
@@ -220,7 +220,7 @@ export const AdminPanel = () => {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <StatCard label="Total sessions" value={stats.total} />
                   <StatCard label="Upcoming" value={stats.upcoming} />
                   <StatCard label="With video" value={stats.withVideo} />
@@ -474,19 +474,19 @@ export const AdminPanel = () => {
                   </div>
 
                   {enrollmentPagination.totalPages > 1 && (
-                    <div className="mt-5 flex items-center justify-between gap-3">
+                    <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <p className="text-sm text-gray-600">
                         Page {enrollmentPagination.page} of{' '}
                         {enrollmentPagination.totalPages}
                       </p>
-                      <div className="flex gap-2">
+                      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                         <button
                           type="button"
                           disabled={enrollmentPagination.page === 1}
                           onClick={() =>
                             setEnrollmentPage((page) => Math.max(1, page - 1))
                           }
-                          className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                         >
                           Previous
                         </button>
@@ -500,7 +500,7 @@ export const AdminPanel = () => {
                               Math.min(enrollmentPagination.totalPages, page + 1)
                             )
                           }
-                          className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                         >
                           Next
                         </button>

@@ -179,7 +179,7 @@ export const SearchFilterBar = ({
           <button
             type="button"
             onClick={handleClearAll}
-            className="ml-auto rounded-lg border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+            className="w-full rounded-lg border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700 sm:ml-auto sm:w-auto"
           >
             Clear all filters
           </button>

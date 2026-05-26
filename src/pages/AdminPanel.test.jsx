@@ -296,4 +296,53 @@ describe('AdminPanel', () => {
       'Too broad right now.'
     )
   })
+
+  it('uses mobile-first layout classes for header actions, workspace tabs, stats, and pagination', () => {
+    const enrollments = Array.from({ length: 21 }, (_, index) =>
+      buildEnrollment({
+        id: `enrollment-${index + 1}`,
+        session_id: `session-${index + 1}`,
+        session: {
+          ...buildEnrollment().session,
+          id: `session-${index + 1}`,
+          title: `Session ${index + 1}`,
+          scheduled_at: `2030-01-${String(index + 1).padStart(2, '0')}T10:00:00Z`,
+        },
+      })
+    )
+
+    mockUseTeacherEnrollments.mockReturnValue({
+      enrollments,
+      loading: false,
+      error: null,
+      updatingId: null,
+      actionMessage: null,
+      refetch: mockRefetchEnrollments,
+      approveEnrollment: mockApproveEnrollment,
+      rejectEnrollment: mockRejectEnrollment,
+      clearActionMessage: mockClearActionMessage,
+    })
+
+    renderAdminPanel()
+
+    expect(screen.getByRole('button', { name: /^home$/i }).className).toMatch(/\bw-full\b/)
+    expect(screen.getByRole('button', { name: /^home$/i }).className).toMatch(
+      /\bsm:w-auto\b/
+    )
+
+    const tabs = screen.getByRole('button', { name: 'Sessions' }).parentElement
+    expect(tabs?.className || '').toMatch(/\bgrid-cols-1\b/)
+    expect(tabs?.className || '').toMatch(/\bsm:grid-cols-3\b/)
+
+    const statsGrid = screen.getByText('Total sessions').parentElement?.parentElement
+    expect(statsGrid?.className || '').toMatch(/\bgrid-cols-1\b/)
+    expect(statsGrid?.className || '').toMatch(/\bsm:grid-cols-2\b/)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enrollments' }))
+
+    expect(screen.getByRole('button', { name: /^next$/i }).className).toMatch(/\bw-full\b/)
+    expect(screen.getByRole('button', { name: /^next$/i }).className).toMatch(
+      /\bsm:w-auto\b/
+    )
+  })
 })

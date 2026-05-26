@@ -69,14 +69,19 @@ const renderModal = (props = {}) =>
 
 const videoUrlArb = fc.webUrl().map((url) => `${url.replace(/\/$/, '')}/video.mp4`)
 const posterUrlArb = fc.webUrl().map((url) => `${url.replace(/\/$/, '')}/poster.jpg`)
+let playSpy
 
 describe('SessionDetailModal', () => {
   beforeEach(() => {
+    playSpy = vi
+      .spyOn(window.HTMLMediaElement.prototype, 'play')
+      .mockImplementation(() => undefined)
     mockUseAuth.mockReturnValue({ user: null })
     mockUseEnrollment.mockReturnValue({ ...defaultEnrollment })
   })
 
   afterEach(() => {
+    playSpy?.mockRestore()
     vi.clearAllMocks()
   })
 
@@ -180,6 +185,15 @@ describe('SessionDetailModal', () => {
       )
     })
 
+    it('renders the video in a responsive aspect-ratio container with native controls', () => {
+      renderModal()
+      const video = screen.getByTestId('session-video')
+      expect(video.parentElement?.className || '').toMatch(/\baspect-video\b/)
+      expect(video.className).toMatch(/\bh-full\b/)
+      expect(video.className).toMatch(/\bobject-contain\b/)
+      expect(video).toHaveAttribute('controls')
+    })
+
     it('does not render a <video> when explainer_video is null (Req 3.6)', () => {
       render(
         <SessionDetailModal
@@ -203,6 +217,32 @@ describe('SessionDetailModal', () => {
       expect(
         screen.getByText('A great deep dive into cell biology.')
       ).toBeInTheDocument()
+    })
+
+    it('shows a manual play button when autoplay is blocked, then retries playback on tap', async () => {
+      playSpy
+        .mockRejectedValueOnce(new Error('Autoplay blocked'))
+        .mockResolvedValueOnce(undefined)
+
+      renderModal()
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: /tap to play video/i })
+        ).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /tap to play video/i }))
+
+      await waitFor(() => {
+        expect(playSpy).toHaveBeenCalledTimes(2)
+      })
+
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('button', { name: /tap to play video/i })
+        ).not.toBeInTheDocument()
+      })
     })
 
     it('Property 9: renders a video element whenever explainer_video is present (Req 3.1)', () => {
