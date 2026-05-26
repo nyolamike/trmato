@@ -26,7 +26,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
   - Configure environment variables for Supabase URL and anon key
   - _Requirements: 1.1, 1.2_
 
-- [ ] 3. Set up database schema and tables
+- [x] 3. Set up database schema and tables
   - Create users table with id, username, email, role, created_at
   - Create sessions table with all fields including explainer_video, video_thumbnail
   - Create enrollments table with payment_proof_screenshot, payment_proof_note
@@ -36,7 +36,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
   - Add unique constraints: (session_id, student_id) on enrollments, (session_id, tag) on session_tags, (request_id, student_id) on topic_request_votes
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 15.3, 20.3, 21.4_
 
-- [ ] 4. Create database indexes for performance
+- [x] 4. Create database indexes for performance
   - Create index on sessions(scheduled_at, status) for filtering upcoming sessions
   - Create index on sessions(subject) for subject filtering
   - Create full-text search index on sessions(title, description) for text search
@@ -47,7 +47,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
   - Create index on topic_request_votes(request_id, student_id)
   - _Requirements: 9.7, 9.8, 9.9, 9.10, 9.11, 9.12, 9.13, 9.14, 9.15, 9.16, 9.17, 9.18, 9.19_
 
-- [ ] 5. Configure Row Level Security (RLS) policies
+- [x] 5. Configure Row Level Security (RLS) policies
   - Enable RLS on all tables
   - Users table: users can read their own data only
   - Sessions table: public read for upcoming sessions, teachers can create/update their own
@@ -57,7 +57,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
   - Topic_request_votes table: students can insert/delete their own votes, public read for counts
   - _Requirements: 8.4, 8.5, 8.6, 8.7, 17.11, 19.13, 20.11, 20.12_
 
-- [ ] 6. Set up Supabase Storage buckets
+- [x] 6. Set up Supabase Storage buckets
   - Create 'media' bucket (public) for videos and thumbnails
   - Create 'payment-proofs' bucket (private) for payment screenshots
   - Configure storage policies: teachers upload to media, students upload to payment-proofs
@@ -66,8 +66,8 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
 
 ### Phase 2: Authentication System (20 minutes)
 
-- [ ] 7. Create authentication context and provider
-  - [ ] 7.1 Implement AuthContext with user state, signUp, signIn, signOut, loading
+- [-] 7. Create authentication context and provider
+  - [x] 7.1 Implement AuthContext with user state, signUp, signIn, signOut, loading
     - Create /contexts/AuthContext.js with React Context
     - Implement signUp function using Supabase Auth with default role 'student'
     - Implement signIn function with email/password
@@ -75,41 +75,41 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - Handle session persistence across page reloads
     - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-  - [ ]* 7.2 Write unit tests for authentication functions
+  - [x] 7.2 Write unit tests for authentication functions
     - Test signUp creates user with role 'student'
     - Test signIn with valid credentials
     - Test signOut clears session
     - Test session persistence
     - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-- [ ] 8. Build authentication UI components
-  - [ ] 8.1 Create SignUp component with username, email, password fields
+- [x] 8. Build authentication UI components
+  - [x] 8.1 Create SignUp component with username, email, password fields
     - Validate email format using regex
     - Validate username length (3-30 characters)
     - Display validation errors inline
     - Handle form submission with AuthContext.signUp
     - _Requirements: 1.5, 1.6, 1.7, 1.8_
 
-  - [ ] 8.2 Create SignIn component with email, password fields
+  - [x] 8.2 Create SignIn component with email, password fields
     - Handle form submission with AuthContext.signIn
     - Display error messages for invalid credentials
     - Redirect to dashboard on successful login
     - _Requirements: 1.2, 11.4_
 
-  - [ ]* 8.3 Write unit tests for auth UI components
+  - [x] 8.3 Write unit tests for auth UI components
     - Test form validation for email and username
     - Test error message display
     - Test successful signup/signin flow
     - _Requirements: 1.5, 1.6_
 
-- [ ] 9. Implement protected routes and role-based redirects
+- [x] 9. Implement protected routes and role-based redirects
   - Create ProtectedRoute component checking authentication status
   - Implement role-based redirect: students → Student_Dashboard, teachers → Admin_Panel
   - Prevent students from accessing Admin_Panel (redirect with error message)
   - Prevent teachers from accessing Student_Dashboard (redirect to Admin_Panel)
   - _Requirements: 8.1, 8.2, 8.3, 11.4_
 
-- [ ] 10. Checkpoint - Ensure authentication works end-to-end
+- [x] 10. Checkpoint - Ensure authentication works end-to-end
   - Ensure all tests pass, ask the user if questions arise.
 
 ### Phase 3: Public Landing Page and Session Discovery (25 minutes)
