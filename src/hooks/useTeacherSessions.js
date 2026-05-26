@@ -1,6 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../utils/supabase'
 
+const mapTeacherSessionRow = (session) => {
+  const { session_tags: sessionTags = [], ...sessionFields } = session
+
+  return {
+    ...sessionFields,
+    tags: sessionTags
+    .map((tagRow) => tagRow.tag)
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b)),
+  }
+}
+
 export const useTeacherSessions = (teacherId) => {
   const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -20,7 +32,12 @@ export const useTeacherSessions = (teacherId) => {
     try {
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('sessions')
-        .select('*')
+        .select(`
+          *,
+          session_tags (
+            tag
+          )
+        `)
         .eq('created_by', teacherId)
         .order('scheduled_at', { ascending: true })
 
@@ -28,39 +45,7 @@ export const useTeacherSessions = (teacherId) => {
         throw sessionsError
       }
 
-      const sessionIds = (sessionsData || []).map((session) => session.id)
-
-      let tagsData = []
-      if (sessionIds.length > 0) {
-        const { data: fetchedTags, error: tagsError } = await supabase
-          .from('session_tags')
-          .select('session_id, tag')
-          .in('session_id', sessionIds)
-
-        if (tagsError) {
-          throw tagsError
-        }
-
-        tagsData = fetchedTags || []
-      }
-
-      const tagsBySessionId = tagsData.reduce((accumulator, tagRow) => {
-        if (!accumulator[tagRow.session_id]) {
-          accumulator[tagRow.session_id] = []
-        }
-
-        accumulator[tagRow.session_id].push(tagRow.tag)
-        return accumulator
-      }, {})
-
-      setSessions(
-        (sessionsData || []).map((session) => ({
-          ...session,
-          tags: (tagsBySessionId[session.id] || []).sort((a, b) =>
-            a.localeCompare(b)
-          ),
-        }))
-      )
+      setSessions((sessionsData || []).map(mapTeacherSessionRow))
     } catch (fetchError) {
       console.error('Failed to fetch teacher sessions:', fetchError)
       setSessions([])

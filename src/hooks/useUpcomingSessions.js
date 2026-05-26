@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../utils/supabase.js'
 
 /**
@@ -12,40 +12,51 @@ import { supabase } from '../utils/supabase.js'
  * 
  * Validates: Requirements 2.1, 12.1, 15.5
  */
+export const UPCOMING_SESSIONS_CACHE_TTL = 5 * 60 * 1000
+
+let upcomingSessionsCache = {
+  data: null,
+  timestamp: 0,
+}
+
+const isUpcomingSessionsCacheValid = () => {
+  if (!upcomingSessionsCache.timestamp || !Array.isArray(upcomingSessionsCache.data)) {
+    return false
+  }
+
+  return Date.now() - upcomingSessionsCache.timestamp < UPCOMING_SESSIONS_CACHE_TTL
+}
+
+const mapSessionRow = (session) => {
+  const { session_tags: sessionTags = [], ...sessionFields } = session
+
+  return {
+    ...sessionFields,
+    tags: sessionTags
+    .map((tagRow) => tagRow.tag)
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b)),
+  }
+}
+
+export const resetUpcomingSessionsCacheForTests = () => {
+  upcomingSessionsCache = {
+    data: null,
+    timestamp: 0,
+  }
+}
+
 export function useUpcomingSessions() {
   const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  
-  // Cache management
-  const cacheRef = useRef({
-    data: null,
-    timestamp: null,
-    isValid: false
-  })
-  
-  const CACHE_TTL = 5 * 60 * 1000 // 5 minutes in milliseconds
-
-  /**
-   * Check if cached data is still valid
-   */
-  const isCacheValid = useCallback(() => {
-    if (!cacheRef.current.isValid || !cacheRef.current.timestamp) {
-      return false
-    }
-    
-    const now = Date.now()
-    const age = now - cacheRef.current.timestamp
-    return age < CACHE_TTL
-  }, [CACHE_TTL])
 
   /**
    * Fetch upcoming sessions from database
    */
   const fetchSessions = useCallback(async (forceRefresh = false) => {
-    // Return cached data if valid and not forcing refresh
-    if (!forceRefresh && isCacheValid()) {
-      setSessions(cacheRef.current.data)
+    if (!forceRefresh && isUpcomingSessionsCacheValid()) {
+      setSessions(upcomingSessionsCache.data)
       setLoading(false)
       setError(null)
       return
@@ -55,10 +66,14 @@ export function useUpcomingSessions() {
     setError(null)
 
     try {
-      // Fetch sessions with status = 'upcoming' ordered by scheduled_at
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('sessions')
-        .select('*')
+        .select(`
+          *,
+          session_tags (
+            tag
+          )
+        `)
         .eq('status', 'upcoming')
         .order('scheduled_at', { ascending: true })
 
@@ -66,44 +81,11 @@ export function useUpcomingSessions() {
         throw sessionsError
       }
 
-      // Fetch tags for all sessions
-      const sessionIds = sessionsData.map(session => session.id)
-      
-      let tagsData = []
-      if (sessionIds.length > 0) {
-        const { data: fetchedTags, error: tagsError } = await supabase
-          .from('session_tags')
-          .select('session_id, tag')
-          .in('session_id', sessionIds)
+      const sessionsWithTags = (sessionsData || []).map(mapSessionRow)
 
-        if (tagsError) {
-          // Log error but don't fail the entire request
-          console.error('Failed to fetch session tags:', tagsError)
-        } else {
-          tagsData = fetchedTags || []
-        }
-      }
-
-      // Group tags by session_id
-      const tagsBySession = tagsData.reduce((acc, { session_id, tag }) => {
-        if (!acc[session_id]) {
-          acc[session_id] = []
-        }
-        acc[session_id].push(tag)
-        return acc
-      }, {})
-
-      // Merge sessions with their tags
-      const sessionsWithTags = sessionsData.map(session => ({
-        ...session,
-        tags: tagsBySession[session.id] || []
-      }))
-
-      // Update cache
-      cacheRef.current = {
+      upcomingSessionsCache = {
         data: sessionsWithTags,
         timestamp: Date.now(),
-        isValid: true
       }
 
       setSessions(sessionsWithTags)
@@ -111,15 +93,14 @@ export function useUpcomingSessions() {
     } catch (err) {
       console.error('Error fetching upcoming sessions:', err)
       setError('Connection error. Please try again.')
-      
-      // If we have cached data, keep showing it even if refresh fails
-      if (cacheRef.current.data) {
-        setSessions(cacheRef.current.data)
+
+      if (Array.isArray(upcomingSessionsCache.data)) {
+        setSessions(upcomingSessionsCache.data)
       }
     } finally {
       setLoading(false)
     }
-  }, [isCacheValid])
+  }, [])
 
   /**
    * Refetch function to force refresh (bypasses cache)
@@ -139,6 +120,6 @@ export function useUpcomingSessions() {
     sessions,
     loading,
     error,
-    refetch
+    refetch,
   }
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useEnrollment } from '../hooks/useEnrollment'
+import { recordEstimatedVideoStream } from '../utils/performance'
 import { LoadingSpinner } from './LoadingSpinner'
 import { TagPill } from './TagPill'
 
@@ -203,12 +204,14 @@ export const SessionDetailModal = ({ session, isOpen, onClose, onTagClick }) => 
 
 const SessionVideo = ({ src, poster }) => {
   const videoRef = useRef(null)
+  const hasTrackedPlaybackRef = useRef(false)
   const [hasError, setHasError] = useState(false)
   const [showManualPlay, setShowManualPlay] = useState(false)
 
   useEffect(() => {
     setHasError(false)
     setShowManualPlay(false)
+    hasTrackedPlaybackRef.current = false
   }, [src])
 
   useEffect(() => {
@@ -238,6 +241,15 @@ const SessionVideo = ({ src, poster }) => {
       cancelled = true
     }
   }, [src])
+
+  const handlePlay = () => {
+    setShowManualPlay(false)
+
+    if (!hasTrackedPlaybackRef.current) {
+      recordEstimatedVideoStream()
+      hasTrackedPlaybackRef.current = true
+    }
+  }
 
   const handleManualPlay = async () => {
     try {
@@ -274,7 +286,7 @@ const SessionVideo = ({ src, poster }) => {
         controls
         playsInline
         preload="metadata"
-        onPlay={() => setShowManualPlay(false)}
+        onPlay={handlePlay}
         onError={() => setHasError(true)}
         className="block h-full w-full object-contain"
       >

@@ -27,6 +27,11 @@ vi.mock('../hooks/useEnrollment', () => ({
   useEnrollment: (args) => mockUseEnrollment(args),
 }))
 
+const mockRecordEstimatedVideoStream = vi.fn()
+vi.mock('../utils/performance', () => ({
+  recordEstimatedVideoStream: () => mockRecordEstimatedVideoStream(),
+}))
+
 import { SessionDetailModal } from './SessionDetailModal'
 
 const defaultEnrollment = {
@@ -243,6 +248,16 @@ describe('SessionDetailModal', () => {
           screen.queryByRole('button', { name: /tap to play video/i })
         ).not.toBeInTheDocument()
       })
+    })
+
+    it('tracks estimated bandwidth on the first successful play only', () => {
+      renderModal()
+
+      const video = screen.getByTestId('session-video')
+      fireEvent.play(video)
+      fireEvent.play(video)
+
+      expect(mockRecordEstimatedVideoStream).toHaveBeenCalledTimes(1)
     })
 
     it('Property 9: renders a video element whenever explainer_video is present (Req 3.1)', () => {

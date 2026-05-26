@@ -523,14 +523,14 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
 
 ### Phase 12: Performance Optimization (5 minutes)
 
-- [ ] 38. Optimize video delivery
+- [x] 38. Optimize video delivery
   - Verify video streaming works without full download
   - Test video preload="metadata" reduces initial load
   - Ensure lazy loading of modal content
   - Monitor bandwidth usage (log warning at 2GB/month)
   - _Requirements: 12.4, 12.5, 12.8_
 
-- [ ] 39. Optimize database queries
+- [x] 39. Optimize database queries
   - Verify indexes are used for all filter queries
   - Test pagination works correctly (20 items per page)
   - Verify 5-minute cache reduces database load
