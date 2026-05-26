@@ -6,56 +6,85 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const fetchUserProfile = async (userId) => {
+    const { data: profile, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    if (error) {
+      throw error
+    }
+
+    return profile
+  }
+
   useEffect(() => {
+    let isMounted = true
+
     // Check active session on mount
     const initializeAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        
+
+        if (!isMounted) return
+
         if (session?.user) {
-          // Fetch user profile with role from users table
-          const { data: profile, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-          
-          if (error) {
-            console.error('Error fetching user profile:', error)
-            setUser(null)
-          } else {
+          try {
+            const profile = await fetchUserProfile(session.user.id)
+            if (!isMounted) return
             setUser(profile)
+          } catch (error) {
+            console.error('Error fetching user profile:', error)
+            if (!isMounted) return
+            setUser(null)
           }
+        } else {
+          setUser(null)
         }
       } catch (error) {
         console.error('Error initializing auth:', error)
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     initializeAuth()
 
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        // Fetch user profile with role
-        const { data: profile, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-        
-        if (!error && profile) {
-          setUser(profile)
-        }
-      } else {
+    // Important: do NOT await Supabase calls inside onAuthStateChange.
+    // Supabase processes this callback synchronously and awaited Supabase
+    // calls here can deadlock auth initialization / refresh flows.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return
+
+      if (!session?.user) {
         setUser(null)
+        setLoading(false)
+        return
       }
-      setLoading(false)
+
+      window.setTimeout(async () => {
+        try {
+          const profile = await fetchUserProfile(session.user.id)
+          if (!isMounted) return
+          setUser(profile)
+        } catch (error) {
+          console.error('Error syncing auth state:', error)
+          if (!isMounted) return
+          setUser(null)
+        } finally {
+          if (isMounted) {
+            setLoading(false)
+          }
+        }
+      }, 0)
     })
 
     return () => {
+      isMounted = false
       subscription.unsubscribe()
     }
   }, [])

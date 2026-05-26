@@ -8,6 +8,35 @@ This directory contains SQL migration files for the TrMato MVP Platform database
 - `002_performance_indexes.sql` - Composite indexes for optimized query performance
 - `003_storage_buckets.sql` - Storage buckets and policies for media files and payment proofs
 
+## Seed Data (Development Only)
+
+- `seed.sql` - Populates the database with 2 teachers, 4 students, 6 sessions
+  (mix of upcoming / completed / cancelled), tags, enrollments, and topic
+  requests. Idempotent — safe to re-run. **Do not run against production.**
+- `seed_rollback.sql` - Removes every row inserted by `seed.sql` (matched by
+  stable seed UUIDs, so non-seed rows are untouched).
+
+### Running the seed
+
+1. Apply migrations 001–003 first.
+2. Supabase Dashboard → **SQL Editor** → New query.
+3. Paste the entire contents of `seed.sql` → **Run**.
+4. (Optional) Uncomment the summary block at the bottom of `seed.sql` and
+   re-run to verify counts.
+
+All seed accounts share the password **`SeedPass!1`** (dev only).
+
+| Email                          | Username    | Role    |
+| ------------------------------ | ----------- | ------- |
+| `mary.biology@trmato.test`     | `ms_mary`   | teacher |
+| `joseph.maths@trmato.test`     | `mr_joseph` | teacher |
+| `alice.student@trmato.test`    | `alice`     | student |
+| `bob.student@trmato.test`      | `bob`       | student |
+| `chloe.student@trmato.test`    | `chloe`     | student |
+| `daniel.student@trmato.test`   | `daniel`    | student |
+
+To reset, paste `seed_rollback.sql` into the SQL Editor and run it.
+
 ## How to Apply Migrations
 
 ### Option 1: Using Supabase Dashboard (Recommended for MVP)

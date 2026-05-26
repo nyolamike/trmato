@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import { AuthProvider } from './AuthContext'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../utils/supabase'
@@ -391,6 +391,75 @@ describe('AuthContext', () => {
 
       // Verify onAuthStateChange was called
       expect(supabase.auth.onAuthStateChange).toHaveBeenCalled()
+    })
+
+    it('should load the user profile asynchronously when auth state changes', async () => {
+      let authCallback
+
+      const mockProfile = {
+        id: 'user-321',
+        username: 'callbackuser',
+        email: 'callback@example.com',
+        role: 'student',
+        created_at: new Date().toISOString(),
+      }
+
+      const mockSingle = vi.fn().mockResolvedValue({
+        data: mockProfile,
+        error: null,
+      })
+
+      const mockEq = vi.fn().mockReturnValue({
+        single: mockSingle,
+      })
+
+      const mockSelect = vi.fn().mockReturnValue({
+        eq: mockEq,
+      })
+
+      supabase.from.mockReturnValue({
+        select: mockSelect,
+      })
+
+      supabase.auth.onAuthStateChange.mockImplementation((callback) => {
+        authCallback = callback
+        return {
+          data: {
+            subscription: {
+              unsubscribe: vi.fn(),
+            },
+          },
+        }
+      })
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('loaded')
+      })
+
+      act(() => {
+        authCallback('SIGNED_IN', {
+          user: {
+            id: 'user-321',
+            email: 'callback@example.com',
+          },
+        })
+      })
+
+      await waitFor(() => {
+        const userElement = screen.getByTestId('user')
+        expect(userElement).not.toHaveTextContent('no user')
+      })
+
+      const userData = JSON.parse(screen.getByTestId('user').textContent)
+      expect(userData.id).toBe('user-321')
+      expect(userData.email).toBe('callback@example.com')
+      expect(userData.role).toBe('student')
     })
   })
 
