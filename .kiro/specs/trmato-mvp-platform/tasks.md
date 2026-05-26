@@ -539,7 +539,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
 
 ### Phase 13: Final Integration and Testing (10 minutes)
 
-- [ ] 40. End-to-end integration testing
+- [x] 40. End-to-end integration testing
   - Test complete student enrollment flow: browse → view session → enroll → dashboard
   - Test complete teacher flow: create session with video → manage enrollments → approve payment
   - Test topic request flow: submit request → vote → teacher approve → session created
@@ -547,14 +547,14 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
   - Test authentication flows and role-based redirects
   - _Requirements: All_
 
-- [ ] 41. Deploy to Vercel
+- [x] 41. Deploy to Vercel
   - Configure Vercel project with environment variables
   - Deploy frontend to Vercel free tier
   - Verify production build works correctly
   - Test deployed app with real Supabase backend
   - _Requirements: 12.9, 12.10_
 
-- [ ] 42. Final checkpoint and handoff
+- [x] 42. Final checkpoint and handoff
   - Verify all core features work in production
   - Document any known issues or limitations
   - Provide deployment credentials and access
