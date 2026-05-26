@@ -77,11 +77,19 @@ BEGIN
     END IF;
 
     -- auth.users
+    --
+    -- NOTE: confirmation_token / recovery_token / email_change /
+    -- email_change_token_new MUST be set to '' (empty string), not left NULL.
+    -- GoTrue scans them into Go strings on every sign-in; NULL values cause
+    -- `Database error querying schema` (unexpected_failure) on /auth/v1/token.
+    -- See https://github.com/supabase/auth/issues/1940.
     IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = r.uid) THEN
       INSERT INTO auth.users (
         id, instance_id, aud, role,
         email, encrypted_password, email_confirmed_at,
         raw_app_meta_data, raw_user_meta_data,
+        confirmation_token, recovery_token,
+        email_change, email_change_token_new,
         created_at, updated_at
       )
       VALUES (
@@ -94,6 +102,8 @@ BEGIN
         NOW(),
         '{"provider":"email","providers":["email"]}'::jsonb,
         jsonb_build_object('username', r.username, 'role', r.role),
+        '', '',
+        '', '',
         NOW(),
         NOW()
       );

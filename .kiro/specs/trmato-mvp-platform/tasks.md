@@ -287,14 +287,14 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
 
 ### Phase 6: Teacher Admin Panel - Session Management (25 minutes)
 
-- [ ] 22. Create Admin Panel layout
+- [x] 22. Create Admin Panel layout
   - Create AdminPanel component with tabs: Sessions, Enrollments, Topic Requests
   - Implement tab navigation
   - Restrict access to teachers only (role check)
   - _Requirements: 7.1, 8.1_
 
-- [ ] 23. Build session creation form with video upload
-  - [ ] 23.1 Create SessionForm component
+- [x] 23. Build session creation form with video upload
+  - [x] 23.1 Create SessionForm component
     - Add fields: title, subject, description, scheduled_at, price, meet_link, payment_number, payment_name
     - Add tag input component (comma-separated or chip style)
     - Add video file input (MP4/WebM, max 50MB)
@@ -307,7 +307,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - Validate meet_link is valid URL
     - _Requirements: 6.2, 6.3, 6.4, 6.5, 6.6, 6.7_
 
-  - [ ] 23.2 Implement video and thumbnail upload
+  - [x] 23.2 Implement video and thumbnail upload
     - Validate video format (MP4, WebM) and size (max 50MB)
     - Validate thumbnail format (JPG, PNG) and size (max 2MB)
     - Upload video to Supabase Storage 'media' bucket with path: media/videos/{session_id}/{timestamp}_{filename}
@@ -318,7 +318,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - Handle upload errors gracefully (allow session creation without video)
     - _Requirements: 6.8, 6.9, 6.10, 6.11, 6.12, 6.13, 6.14, 6.15, 10.9, 10.10_
 
-  - [ ] 23.3 Implement tag management in session form
+  - [x] 23.3 Implement tag management in session form
     - Create TagInput component with add/remove functionality
     - Validate tag length (1-50 chars)
     - Normalize tags to lowercase and trim whitespace
@@ -327,7 +327,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - Store tags in session_tags table on session creation
     - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.8, 15.9_
 
-  - [ ]* 23.4 Write property tests for session validation
+  - [x]* 23.4 Write property tests for session validation
     - **Property 22: Session Title Length Validation**
     - **Validates: Requirements 6.3**
     - **Property 24: Future Date Validation**
@@ -339,13 +339,13 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - **Property 70: Tag Length Validation**
     - **Validates: Requirements 15.2**
 
-- [ ] 24. Display teacher's sessions list
+- [x] 24. Display teacher's sessions list
   - Fetch sessions where created_by equals current teacher's user ID
   - Display sessions with title, subject, date, status, tags
   - Show session count and basic stats
   - _Requirements: 7.1, 7.2, 15.5_
 
-- [ ] 25. Checkpoint - Ensure session creation and video upload work correctly
+- [x] 25. Checkpoint - Ensure session creation and video upload work correctly
   - Ensure all tests pass, ask the user if questions arise.
 
 ### Phase 7: Teacher Admin Panel - Enrollment Management (15 minutes)
