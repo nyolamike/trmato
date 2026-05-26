@@ -40,6 +40,7 @@ interface AuthContext {
   signUp: (username, email, password) => Promise<void>
   signIn: (email, password) => Promise<void>
   signOut: () => Promise<void>
+  resendConfirmation: (email) => Promise<{ data: object | null, error: Error | null }>
   loading: boolean
 }
 
@@ -1814,6 +1815,12 @@ sequenceDiagram
 **Condition**: Supabase request fails due to network issue
 **Response**: Display error toast "Connection error. Please try again."
 **Recovery**: Retry button or automatic retry with exponential backoff
+
+### Error Scenario 5b: Email Not Confirmed on Sign-In
+
+**Condition**: A user submits valid-looking credentials but Supabase Auth rejects the sign-in because the email address has not yet been confirmed
+**Response**: Display error message "Please confirm your email address" and render a Resend_Confirmation_Action below the error
+**Recovery**: User activates the Resend_Confirmation_Action; the System calls `supabase.auth.resend({ type: 'signup', email })` with the email currently in the form, shows a sending indicator while the request is in flight, then either confirms success ("Confirmation email sent to {email}") or surfaces the failure reason for retry. If the user edits the email field, the action is hidden until another unconfirmed-email error occurs.
 
 ### Error Scenario 6: Video File Too Large
 

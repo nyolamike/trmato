@@ -239,7 +239,6 @@ describe('useUpcomingSessions', () => {
       }
     )
   })
-})})
 
   /**
    * Property 7: Upcoming Session Filtering

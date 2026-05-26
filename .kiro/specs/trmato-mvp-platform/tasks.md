@@ -112,6 +112,14 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
 - [x] 10. Checkpoint - Ensure authentication works end-to-end
   - Ensure all tests pass, ask the user if questions arise.
 
+- [x] 10a. Add resend-confirmation flow on the sign-in form
+  - Add `resendConfirmation(email)` to AuthContext wrapping `supabase.auth.resend({ type: 'signup', email })`
+  - Show a "Resend confirmation email" action in the SignIn server-error block only when sign-in fails with an unconfirmed-email error
+  - Handle resend states (idle / sending / sent / error) with inline feedback and disable the action while in flight
+  - Hide the action when the user edits the email field after the error
+  - Cover the flow with unit tests in `SignIn.test.jsx`
+  - _Requirements: 1.9, 1.10, 1.11, 1.12, 1.13, 1.14, 1.15_
+
 ### Phase 3: Public Landing Page and Session Discovery (25 minutes)
 
 - [-] 11. Create session data fetching hooks
@@ -127,22 +135,22 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - **Validates: Requirements 2.1**
     - Test that all returned sessions have status = 'upcoming'
 
-- [ ] 12. Build Landing Page layout and session grid
-  - [ ] 12.1 Create LandingPage component with responsive grid
+- [x] 12. Build Landing Page layout and session grid
+  - [x] 12.1 Create LandingPage component with responsive grid
     - Implement mobile-first responsive grid (1 column mobile, 2-3 desktop)
     - Fetch sessions using useUpcomingSessions hook
     - Display loading spinner while fetching
     - Display empty state if no sessions
     - _Requirements: 2.1, 2.5, 14.3, 14.4_
 
-  - [ ] 12.2 Create SessionCard component
+  - [x] 12.2 Create SessionCard component
     - Display title, subject, scheduled date, price
     - Display tags as clickable pills below title
     - Handle click to open Session_Modal
     - Responsive card layout with Tailwind CSS
     - _Requirements: 2.2, 15.10_
 
-  - [ ]* 12.3 Write unit tests for SessionCard
+  - [x]* 12.3 Write unit tests for SessionCard
     - Test all required fields are displayed
     - Test click handler opens modal
     - Test tag pills are rendered

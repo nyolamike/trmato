@@ -1,3 +1,4 @@
 export { default as SignUp } from './SignUp'
 export { default as SignIn } from './SignIn'
 export { ProtectedRoute } from './ProtectedRoute'
+export { SessionCard } from './SessionCard'

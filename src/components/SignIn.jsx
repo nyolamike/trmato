@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 
 const SignIn = ({ onSuccess, onSwitchToSignUp }) => {
-  const { signIn, user } = useAuth()
+  const { signIn, resendConfirmation, user } = useAuth()
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     email: '',
@@ -13,6 +13,9 @@ const SignIn = ({ onSuccess, onSwitchToSignUp }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [serverError, setServerError] = useState('')
   const [shouldRedirect, setShouldRedirect] = useState(false)
+  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false)
+  const [resendStatus, setResendStatus] = useState('idle') // 'idle' | 'sending' | 'sent' | 'error'
+  const [resendError, setResendError] = useState('')
 
   // Email validation regex
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -66,11 +69,43 @@ const SignIn = ({ onSuccess, onSwitchToSignUp }) => {
     if (serverError) {
       setServerError('')
     }
+    // If the user edits the email, the unconfirmed-email state no longer
+    // applies to whatever they're now typing.
+    if (name === 'email' && needsEmailConfirmation) {
+      setNeedsEmailConfirmation(false)
+      setResendStatus('idle')
+      setResendError('')
+    }
+  }
+
+  const handleResendConfirmation = async () => {
+    if (!formData.email) return
+
+    setResendStatus('sending')
+    setResendError('')
+
+    try {
+      const { error } = await resendConfirmation(formData.email)
+
+      if (error) {
+        setResendStatus('error')
+        setResendError(error.message || 'Failed to resend confirmation email.')
+      } else {
+        setResendStatus('sent')
+      }
+    } catch (error) {
+      console.error('Resend confirmation error:', error)
+      setResendStatus('error')
+      setResendError('An unexpected error occurred. Please try again.')
+    }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setServerError('')
+    setNeedsEmailConfirmation(false)
+    setResendStatus('idle')
+    setResendError('')
 
     if (!validateForm()) {
       return
@@ -89,6 +124,7 @@ const SignIn = ({ onSuccess, onSwitchToSignUp }) => {
           setServerError('Invalid email or password')
         } else if (error.message.includes('Email not confirmed')) {
           setServerError('Please confirm your email address')
+          setNeedsEmailConfirmation(true)
         } else {
           setServerError(error.message || 'Failed to sign in. Please try again.')
         }
@@ -165,8 +201,43 @@ const SignIn = ({ onSuccess, onSwitchToSignUp }) => {
 
           {/* Server Error Message */}
           {serverError && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg space-y-2">
               <p className="text-sm text-red-800">{serverError}</p>
+
+              {needsEmailConfirmation && (
+                <div className="text-sm">
+                  {resendStatus === 'sent' ? (
+                    <p className="text-green-700">
+                      Confirmation email sent to{' '}
+                      <span className="font-medium">{formData.email}</span>.
+                      Please check your inbox (and spam folder).
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-red-800">
+                        Didn&apos;t get the confirmation email?
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleResendConfirmation}
+                        disabled={resendStatus === 'sending'}
+                        className={`mt-1 inline-flex items-center text-sm font-medium underline-offset-2 hover:underline ${
+                          resendStatus === 'sending'
+                            ? 'text-gray-500 cursor-not-allowed'
+                            : 'text-blue-700 hover:text-blue-800'
+                        }`}
+                      >
+                        {resendStatus === 'sending'
+                          ? 'Sending...'
+                          : 'Resend confirmation email'}
+                      </button>
+                      {resendStatus === 'error' && resendError && (
+                        <p className="mt-1 text-red-700">{resendError}</p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

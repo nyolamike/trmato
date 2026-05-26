@@ -11,6 +11,7 @@ vi.mock('../utils/supabase', () => ({
     auth: {
       signInWithPassword: vi.fn(),
       getSession: vi.fn(),
+      resend: vi.fn(),
       onAuthStateChange: vi.fn(() => ({
         data: { subscription: { unsubscribe: vi.fn() } }
       }))
@@ -491,6 +492,186 @@ describe('SignIn Component', () => {
       
       // Button should be enabled again
       expect(submitButton).not.toBeDisabled()
+    })
+  })
+
+  describe('Email Confirmation Resend', () => {
+    const triggerUnconfirmedSignIn = async (email = 'test@example.com') => {
+      supabase.auth.signInWithPassword.mockResolvedValue({
+        data: null,
+        error: { message: 'Email not confirmed' }
+      })
+
+      renderSignIn()
+
+      fireEvent.change(screen.getByLabelText(/email/i), {
+        target: { value: email }
+      })
+      fireEvent.change(screen.getByLabelText(/password/i), {
+        target: { value: 'password123' }
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/please confirm your email address/i)
+        ).toBeInTheDocument()
+      })
+    }
+
+    it('shows the resend confirmation button only after an unconfirmed-email error', async () => {
+      // Sanity: no resend button before any error
+      renderSignIn()
+      expect(
+        screen.queryByRole('button', { name: /resend confirmation/i })
+      ).not.toBeInTheDocument()
+    })
+
+    it('does NOT show the resend button for invalid-credentials errors', async () => {
+      supabase.auth.signInWithPassword.mockResolvedValue({
+        data: null,
+        error: { message: 'Invalid login credentials' }
+      })
+
+      renderSignIn()
+
+      fireEvent.change(screen.getByLabelText(/email/i), {
+        target: { value: 'test@example.com' }
+      })
+      fireEvent.change(screen.getByLabelText(/password/i), {
+        target: { value: 'wrongpassword' }
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/invalid email or password/i)
+        ).toBeInTheDocument()
+      })
+
+      expect(
+        screen.queryByRole('button', { name: /resend confirmation/i })
+      ).not.toBeInTheDocument()
+    })
+
+    it('shows the resend button after an unconfirmed-email error', async () => {
+      await triggerUnconfirmedSignIn()
+
+      expect(
+        screen.getByRole('button', { name: /resend confirmation email/i })
+      ).toBeInTheDocument()
+    })
+
+    it('calls supabase.auth.resend with type=signup and the form email when clicked', async () => {
+      supabase.auth.resend.mockResolvedValue({ data: {}, error: null })
+
+      await triggerUnconfirmedSignIn('learner@matovu.io')
+
+      fireEvent.click(
+        screen.getByRole('button', { name: /resend confirmation email/i })
+      )
+
+      await waitFor(() => {
+        expect(supabase.auth.resend).toHaveBeenCalledWith({
+          type: 'signup',
+          email: 'learner@matovu.io'
+        })
+      })
+    })
+
+    it('shows a success message after the confirmation email is resent', async () => {
+      supabase.auth.resend.mockResolvedValue({ data: {}, error: null })
+
+      await triggerUnconfirmedSignIn('learner@matovu.io')
+
+      fireEvent.click(
+        screen.getByRole('button', { name: /resend confirmation email/i })
+      )
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/confirmation email sent to/i)
+        ).toBeInTheDocument()
+      })
+      expect(screen.getByText(/learner@matovu\.io/)).toBeInTheDocument()
+
+      // After success the button is replaced by the success message
+      expect(
+        screen.queryByRole('button', { name: /resend confirmation email/i })
+      ).not.toBeInTheDocument()
+    })
+
+    it('shows an error message when the resend request fails', async () => {
+      supabase.auth.resend.mockResolvedValue({
+        data: null,
+        error: { message: 'For security reasons, please wait before resending.' }
+      })
+
+      await triggerUnconfirmedSignIn()
+
+      fireEvent.click(
+        screen.getByRole('button', { name: /resend confirmation email/i })
+      )
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/for security reasons, please wait before resending/i)
+        ).toBeInTheDocument()
+      })
+
+      // Button remains so the user can retry
+      expect(
+        screen.getByRole('button', { name: /resend confirmation email/i })
+      ).toBeInTheDocument()
+    })
+
+    it('disables the resend button while the request is in flight', async () => {
+      let resolveResend
+      supabase.auth.resend.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveResend = resolve
+          })
+      )
+
+      await triggerUnconfirmedSignIn()
+
+      const resendButton = screen.getByRole('button', {
+        name: /resend confirmation email/i
+      })
+      fireEvent.click(resendButton)
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: /sending/i })
+        ).toBeDisabled()
+      })
+
+      resolveResend({ data: {}, error: null })
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/confirmation email sent to/i)
+        ).toBeInTheDocument()
+      })
+    })
+
+    it('hides the resend button when the user edits the email field', async () => {
+      await triggerUnconfirmedSignIn()
+
+      expect(
+        screen.getByRole('button', { name: /resend confirmation email/i })
+      ).toBeInTheDocument()
+
+      fireEvent.change(screen.getByLabelText(/email/i), {
+        target: { value: 'different@example.com' }
+      })
+
+      expect(
+        screen.queryByRole('button', { name: /resend confirmation email/i })
+      ).not.toBeInTheDocument()
     })
   })
 })

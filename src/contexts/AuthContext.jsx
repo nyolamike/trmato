@@ -160,11 +160,28 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  const resendConfirmation = async (email) => {
+    try {
+      const { data, error } = await supabase.auth.resend({
+        type: 'signup',
+        email
+      })
+
+      if (error) throw error
+
+      return { data, error: null }
+    } catch (error) {
+      console.error('Error resending confirmation email:', error)
+      return { data: null, error }
+    }
+  }
+
   const value = {
     user,
     signUp,
     signIn,
     signOut,
+    resendConfirmation,
     loading
   }
 
