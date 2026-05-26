@@ -46,6 +46,8 @@ const renderLandingPage = () =>
     </MemoryRouter>
   )
 
+const getGrid = () => screen.getByLabelText(/upcoming sessions list/i)
+
 describe('LandingPage — filter state preservation (Req 16.15)', () => {
   beforeEach(() => {
     vi.useFakeTimers()
@@ -80,17 +82,20 @@ describe('LandingPage — filter state preservation (Req 16.15)', () => {
       vi.advanceTimersByTime(300)
     })
 
-    // Only the matching session is visible
-    expect(screen.getByText('Cell Biology Deep Dive')).toBeInTheDocument()
-    expect(screen.queryByText('Algebra Crash Course')).not.toBeInTheDocument()
+    // Only the matching session is visible in the grid
+    expect(within(getGrid()).getByText('Cell Biology Deep Dive')).toBeInTheDocument()
+    expect(within(getGrid()).queryByText('Algebra Crash Course')).not.toBeInTheDocument()
 
-    // Simulate the Session_Modal trigger (Task 16) by clicking the card
-    fireEvent.click(screen.getByText('Cell Biology Deep Dive'))
+    // Opens the Session_Modal by clicking the card
+    fireEvent.click(within(getGrid()).getByText('Cell Biology Deep Dive'))
+
+    // Modal is mounted alongside the grid
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
 
     // Filter state must remain applied — the grid still only shows the match
     expect(search.value).toBe('cell')
-    expect(screen.getByText('Cell Biology Deep Dive')).toBeInTheDocument()
-    expect(screen.queryByText('Algebra Crash Course')).not.toBeInTheDocument()
+    expect(within(getGrid()).getByText('Cell Biology Deep Dive')).toBeInTheDocument()
+    expect(within(getGrid()).queryByText('Algebra Crash Course')).not.toBeInTheDocument()
   })
 
   it('keeps the subject filter applied after a SessionCard is clicked', () => {
@@ -101,15 +106,15 @@ describe('LandingPage — filter state preservation (Req 16.15)', () => {
 
     // Subject chip and filtered list reflect the choice
     expect(screen.getByText(/Subject: Biology/)).toBeInTheDocument()
-    expect(screen.getByText('Cell Biology Deep Dive')).toBeInTheDocument()
-    expect(screen.queryByText('Algebra Crash Course')).not.toBeInTheDocument()
+    expect(within(getGrid()).getByText('Cell Biology Deep Dive')).toBeInTheDocument()
+    expect(within(getGrid()).queryByText('Algebra Crash Course')).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByText('Cell Biology Deep Dive'))
+    fireEvent.click(within(getGrid()).getByText('Cell Biology Deep Dive'))
 
     // Subject filter survives the click
     expect(subjectSelect.value).toBe('Biology')
     expect(screen.getByText(/Subject: Biology/)).toBeInTheDocument()
-    expect(screen.queryByText('Algebra Crash Course')).not.toBeInTheDocument()
+    expect(within(getGrid()).queryByText('Algebra Crash Course')).not.toBeInTheDocument()
   })
 
   it('keeps selected tag filters applied after a SessionCard is clicked', () => {
@@ -125,14 +130,14 @@ describe('LandingPage — filter state preservation (Req 16.15)', () => {
     fireEvent.click(osmosisPill)
 
     // Only the session tagged "osmosis" remains
-    expect(screen.getByText('Cell Biology Deep Dive')).toBeInTheDocument()
-    expect(screen.queryByText('Algebra Crash Course')).not.toBeInTheDocument()
+    expect(within(getGrid()).getByText('Cell Biology Deep Dive')).toBeInTheDocument()
+    expect(within(getGrid()).queryByText('Algebra Crash Course')).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByText('Cell Biology Deep Dive'))
+    fireEvent.click(within(getGrid()).getByText('Cell Biology Deep Dive'))
 
     // Tag filter still applied after the click
-    expect(screen.getByText('Cell Biology Deep Dive')).toBeInTheDocument()
-    expect(screen.queryByText('Algebra Crash Course')).not.toBeInTheDocument()
+    expect(within(getGrid()).getByText('Cell Biology Deep Dive')).toBeInTheDocument()
+    expect(within(getGrid()).queryByText('Algebra Crash Course')).not.toBeInTheDocument()
     expect(
       within(popularTagsRegion).getByRole('button', { name: '#osmosis' })
     ).toHaveAttribute('aria-pressed', 'true')
@@ -141,7 +146,7 @@ describe('LandingPage — filter state preservation (Req 16.15)', () => {
   it('marks the clicked SessionCard as aria-current on the host <li>', () => {
     renderLandingPage()
 
-    const card = screen.getByText('Cell Biology Deep Dive')
+    const card = within(getGrid()).getByText('Cell Biology Deep Dive')
     const hostLi = card.closest('li')
     expect(hostLi).not.toBeNull()
     expect(hostLi).not.toHaveAttribute('aria-current')

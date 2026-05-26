@@ -196,8 +196,8 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
 
 ### Phase 4: Session Detail Modal with Video Player (20 minutes)
 
-- [ ] 16. Build Session Detail Modal component
-  - [ ] 16.1 Create SessionDetailModal component structure
+- [-] 16. Build Session Detail Modal component
+  - [x] 16.1 Create SessionDetailModal component structure
     - Implement modal overlay with close button
     - Fetch full session details including video URLs and tags
     - Display session information below video player
@@ -206,7 +206,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - Lazy load content only when modal opens
     - _Requirements: 2.3, 3.6, 12.2_
 
-  - [ ] 16.2 Implement video player with autoplay
+  - [x] 16.2 Implement video player with autoplay
     - Render HTML5 video element when explainer_video is not null
     - Set autoplay, muted, controls, playsInline attributes
     - Use video_thumbnail as poster image
@@ -215,7 +215,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - Responsive video sizing (max-width: 100%, height: auto)
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.9, 11.11, 14.5, 14.6_
 
-  - [ ]* 16.3 Write property tests for video player
+  - [x]* 16.3 Write property tests for video player
     - **Property 9: Video Player Conditional Rendering**
     - **Validates: Requirements 3.1**
     - **Property 10: Video Autoplay Configuration**
@@ -225,8 +225,8 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - **Property 14: No Video Player Without Video**
     - **Validates: Requirements 3.6**
 
-- [ ] 17. Implement enrollment form in modal
-  - [ ] 17.1 Create enrollment form with payment proof upload
+- [-] 17. Implement enrollment form in modal
+  - [x] 17.1 Create enrollment form with payment proof upload
     - Show form only for authenticated students
     - Add file input for payment screenshot (optional)
     - Add textarea for payment note (optional)
@@ -236,7 +236,7 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - Prevent duplicate enrollments (check existing enrollment)
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 11.2_
 
-  - [ ]* 17.2 Write property tests for enrollment validation
+  - [x]* 17.2 Write property tests for enrollment validation
     - **Property 16: Payment Proof Requirement**
     - **Validates: Requirements 4.2**
     - **Property 17: Enrollment Initial Status**
@@ -244,13 +244,13 @@ This implementation plan breaks down the TrMato MVP platform into discrete codin
     - **Property 18: Enrollment Uniqueness**
     - **Validates: Requirements 4.4**
 
-- [ ] 18. Add tag filtering from modal
+- [x] 18. Add tag filtering from modal
   - Make tags clickable in SessionDetailModal
   - On tag click, close modal and apply tag filter to landing page
   - Maintain filter state when navigating between modal and landing page
   - _Requirements: 16.6, 16.15_
 
-- [ ] 19. Checkpoint - Ensure session modal and enrollment work correctly
+- [x] 19. Checkpoint - Ensure session modal and enrollment work correctly
   - Ensure all tests pass, ask the user if questions arise.
 
 ### Phase 5: Student Dashboard (15 minutes)

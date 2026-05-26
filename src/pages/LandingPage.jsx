@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useUpcomingSessions } from '../hooks/useUpcomingSessions'
 import { SessionCard } from '../components/SessionCard'
 import { SearchFilterBar } from '../components/SearchFilterBar'
+import { SessionDetailModal } from '../components/SessionDetailModal'
 import {
   computePopularTags,
   extractSubjects,
@@ -85,18 +86,34 @@ export const LandingPage = () => {
     setLocalMessage('You have been signed out successfully')
   }
 
-  // Holds the currently-selected session id. The Session_Modal will be wired
-  // up to this in Task 16; for now we just track the selection so the click
-  // contract is exercised end-to-end.
+  // Tracks the currently-open session in the Session_Modal. Storing the id
+  // (rather than the session object) lets the modal stay in sync with the
+  // latest cached session data after a refetch.
   const [selectedSessionId, setSelectedSessionId] = useState(null)
+  const selectedSession = useMemo(
+    () => sessions.find((session) => session.id === selectedSessionId) ?? null,
+    [sessions, selectedSessionId]
+  )
   const handleSessionClick = (session) => {
     setSelectedSessionId(session.id)
+  }
+
+  const handleCloseModal = () => {
+    setSelectedSessionId(null)
   }
 
   const handleTagToggle = (tag) => {
     setSelectedTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     )
+  }
+
+  // Tags clicked from inside the modal should both apply the tag as an
+  // active filter *and* close the modal so the filtered grid is visible
+  // (Requirements 16.6, 16.15).
+  const handleTagClickFromModal = (tag) => {
+    setSelectedTags((prev) => (prev.includes(tag) ? prev : [...prev, tag]))
+    setSelectedSessionId(null)
   }
 
   const handleClearFilters = () => {
@@ -259,6 +276,13 @@ export const LandingPage = () => {
           )}
         </section>
       </div>
+
+      <SessionDetailModal
+        session={selectedSession}
+        isOpen={Boolean(selectedSession)}
+        onClose={handleCloseModal}
+        onTagClick={handleTagClickFromModal}
+      />
     </div>
   )
 }
