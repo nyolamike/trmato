@@ -41,6 +41,7 @@ TrMato is a minimal live tutoring platform designed for secondary school student
 - **Request_Status**: One of 'pending', 'approved', or 'rejected' indicating the state of a topic request
 - **Approved_Session_ID**: A foreign key linking an approved topic request to the session created from it
 - **Rejection_Reason**: Optional text explaining why a topic request was rejected by the teacher
+- **Resend_Confirmation_Action**: A UI control on the sign-in form that lets a user request a new email-confirmation message when sign-in fails because their email address has not yet been confirmed
 
 ## Requirements
 
@@ -58,6 +59,13 @@ TrMato is a minimal live tutoring platform designed for secondary school student
 6. THE System SHALL validate that usernames are between 3 and 30 characters
 7. THE System SHALL enforce that email addresses are unique across all users
 8. THE System SHALL enforce that usernames are unique across all users
+9. WHEN a sign-in attempt fails because the user's email address has not yet been confirmed, THE System SHALL display a "Resend confirmation email" action alongside the error message
+10. WHEN a user activates the "Resend confirmation email" action, THE System SHALL send a new confirmation email to the email address currently entered in the sign-in form
+11. WHILE a confirmation email is being resent, THE System SHALL disable the "Resend confirmation email" action and display a sending indicator
+12. WHEN a confirmation email is successfully resent, THE System SHALL display a confirmation message that includes the destination email address and instruct the user to check their inbox
+13. WHEN a confirmation email resend request fails, THE System SHALL display the failure reason inline and keep the "Resend confirmation email" action available for retry
+14. WHEN a user edits the email field after an unconfirmed-email error, THE System SHALL hide the "Resend confirmation email" action until a new unconfirmed-email error occurs
+15. THE System SHALL only display the "Resend confirmation email" action for unconfirmed-email errors, and NOT for other sign-in failures such as invalid credentials
 
 ### Requirement 2: Public Session Discovery
 

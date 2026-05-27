@@ -370,7 +370,7 @@ CREATE POLICY "Students can delete own votes"
 -- Bucket: payment-proofs (private)
 -- - Used for: payment_screenshot
 -- - Access: Student (owner) and session Teacher only
--- - Path structure: payment-proofs/{enrollment_id}/{timestamp}_{filename}
+-- - Path structure: payment-proofs/{student_id}/{session_id}/{timestamp}_{filename}
 
 -- ============================================================================
 -- HELPER VIEWS (Optional - for convenience)

@@ -5,6 +5,37 @@ This directory contains SQL migration files for the TrMato MVP Platform database
 ## Migration Files
 
 - `001_initial_schema.sql` - Initial database schema with all tables, indexes, constraints, and RLS policies
+- `002_performance_indexes.sql` - Composite indexes for optimized query performance
+- `003_storage_buckets.sql` - Storage buckets and policies for media files and payment proofs
+
+## Seed Data (Development Only)
+
+- `seed.sql` - Populates the database with 2 teachers, 4 students, 6 sessions
+  (mix of upcoming / completed / cancelled), tags, enrollments, and topic
+  requests. Idempotent — safe to re-run. **Do not run against production.**
+- `seed_rollback.sql` - Removes every row inserted by `seed.sql` (matched by
+  stable seed UUIDs, so non-seed rows are untouched).
+
+### Running the seed
+
+1. Apply migrations 001–003 first.
+2. Supabase Dashboard → **SQL Editor** → New query.
+3. Paste the entire contents of `seed.sql` → **Run**.
+4. (Optional) Uncomment the summary block at the bottom of `seed.sql` and
+   re-run to verify counts.
+
+All seed accounts share the password **`SeedPass!1`** (dev only).
+
+| Email                          | Username    | Role    |
+| ------------------------------ | ----------- | ------- |
+| `mary.biology@trmato.test`     | `ms_mary`   | teacher |
+| `joseph.maths@trmato.test`     | `mr_joseph` | teacher |
+| `alice.student@trmato.test`    | `alice`     | student |
+| `bob.student@trmato.test`      | `bob`       | student |
+| `chloe.student@trmato.test`    | `chloe`     | student |
+| `daniel.student@trmato.test`   | `daniel`    | student |
+
+To reset, paste `seed_rollback.sql` into the SQL Editor and run it.
 
 ## How to Apply Migrations
 
@@ -16,7 +47,9 @@ This directory contains SQL migration files for the TrMato MVP Platform database
 4. Copy the entire contents of `001_initial_schema.sql`
 5. Paste into the SQL editor
 6. Click **"Run"** to execute the migration
-7. Verify that all tables were created successfully in the **Table Editor**
+7. Repeat steps 3-6 for `002_performance_indexes.sql`
+8. Repeat steps 3-6 for `003_storage_buckets.sql`
+9. Verify that all tables, indexes, and storage buckets were created successfully
 
 ### Option 2: Using Supabase CLI
 
@@ -83,7 +116,45 @@ psql -h db.your-project.supabase.co -U postgres -d postgres -f supabase/migratio
 
 ## Storage Buckets Setup
 
-After applying the migration, you need to create storage buckets manually:
+Storage buckets are now created automatically via the `003_storage_buckets.sql` migration. This migration creates:
+
+### 1. 'media' Bucket (Public)
+
+- **Purpose**: Store explainer videos and thumbnails
+- **Public Access**: Yes (allows video streaming)
+- **File Size Limit**: 50MB
+- **Allowed Types**: MP4, WebM, JPEG, PNG
+- **Path Structure**:
+  - Videos: `media/videos/{session_id}/{timestamp}_{filename}`
+  - Thumbnails: `media/thumbnails/{session_id}/{timestamp}_{filename}`
+
+### 2. 'payment-proofs' Bucket (Private)
+
+- **Purpose**: Store payment proof screenshots
+- **Public Access**: No (private, restricted access)
+- **File Size Limit**: 5MB
+- **Allowed Types**: JPEG, PNG
+- **Path Structure**: `payment-proofs/{enrollment_id}/{timestamp}_{filename}`
+
+### Storage Policies
+
+The migration automatically creates the following RLS policies:
+
+**Media Bucket:**
+- Public read access (anyone can view/stream videos)
+- Teachers can upload media files
+- Teachers can update their own media files
+- Session owner teachers can delete their session media
+
+**Payment-Proofs Bucket:**
+- Students can upload payment proofs
+- Students can read their own payment proofs
+- Session owner teachers can read payment proofs for their sessions
+- Students can update/delete their own payment proofs
+
+### Manual Setup (Alternative)
+
+If you prefer to create buckets manually via the Supabase Dashboard instead of using the migration:
 
 ### 1. Create 'media' Bucket (Public)
 
@@ -161,7 +232,7 @@ USING (
 
 ## Verification Steps
 
-After applying the migration and setting up storage:
+After applying all migrations:
 
 1. **Check Tables:**
    ```sql
@@ -184,17 +255,53 @@ After applying the migration and setting up storage:
    WHERE schemaname = 'public';
    ```
 
-4. **Test User Creation:**
+4. **Check Storage Buckets:**
+   ```sql
+   SELECT id, name, public, file_size_limit, allowed_mime_types
+   FROM storage.buckets
+   WHERE id IN ('media', 'payment-proofs');
+   ```
+
+5. **Check Storage Policies:**
+   ```sql
+   SELECT policyname, cmd
+   FROM pg_policies 
+   WHERE tablename = 'objects' AND schemaname = 'storage'
+   ORDER BY policyname;
+   ```
+
+6. **Run Complete Storage Verification:**
+   ```bash
+   # Run the comprehensive storage verification script
+   psql -h your-db-host -U postgres -d postgres -f supabase/verify-storage.sql
+   ```
+   Or execute `verify-storage.sql` in the Supabase SQL Editor
+
+7. **Test User Creation:**
    - Sign up a test user via your app
    - Check that a row appears in the `users` table
    - Verify the trigger worked correctly
 
 ## Rollback (if needed)
 
-To rollback this migration:
+To rollback all migrations:
 
 ```sql
--- Drop all tables (cascades will handle foreign keys)
+-- Drop storage policies (from migration 003)
+DROP POLICY IF EXISTS "Public read access to media" ON storage.objects;
+DROP POLICY IF EXISTS "Teachers can upload media" ON storage.objects;
+DROP POLICY IF EXISTS "Teachers can update own media" ON storage.objects;
+DROP POLICY IF EXISTS "Teachers can delete own session media" ON storage.objects;
+DROP POLICY IF EXISTS "Students can upload payment proofs" ON storage.objects;
+DROP POLICY IF EXISTS "Students can read own payment proofs" ON storage.objects;
+DROP POLICY IF EXISTS "Teachers can read session payment proofs" ON storage.objects;
+DROP POLICY IF EXISTS "Students can update own payment proofs" ON storage.objects;
+DROP POLICY IF EXISTS "Students can delete own payment proofs" ON storage.objects;
+
+-- Delete storage buckets (from migration 003)
+DELETE FROM storage.buckets WHERE id IN ('media', 'payment-proofs');
+
+-- Drop all tables (from migration 001)
 DROP TABLE IF EXISTS topic_request_votes CASCADE;
 DROP TABLE IF EXISTS topic_requests CASCADE;
 DROP TABLE IF EXISTS session_tags CASCADE;
@@ -216,10 +323,10 @@ DROP FUNCTION IF EXISTS public.handle_new_user();
 After successful migration:
 
 1. ✅ Database schema created
-2. ⬜ Storage buckets configured
+2. ✅ Storage buckets configured (via migration 003)
 3. ⬜ Test authentication flow
-4. ⬜ Test session creation
-5. ⬜ Test enrollment flow
+4. ⬜ Test session creation with video upload
+5. ⬜ Test enrollment flow with payment proof upload
 6. ⬜ Test topic request submission
 
 ## Requirements Validated
@@ -239,6 +346,7 @@ This migration satisfies the following requirements:
 - **Requirement 9.11**: Index on session_tags.tag
 - **Requirement 9.12**: Index on session_tags.session_id
 - **Requirement 9.13-9.19**: All topic_requests and topic_request_votes indexes
+- **Requirement 10.1-10.10**: Storage buckets and policies for media and payment proofs
 - **Requirement 15.3**: Unique constraint on (session_id, tag) for session_tags
 - **Requirement 20.3**: Unique constraint on (request_id, student_id) for votes
 - **Requirement 21.4**: Cascade delete for topic_requests → votes

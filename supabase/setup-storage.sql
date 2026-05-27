@@ -1,4 +1,14 @@
 -- Storage Bucket Policies for TrMato MVP Platform
+-- 
+-- ⚠️ DEPRECATED: This file has been superseded by migration 003_storage_buckets.sql
+-- 
+-- Please use supabase/migrations/003_storage_buckets.sql instead, which includes:
+-- - Automatic bucket creation via SQL
+-- - All storage policies
+-- - Comprehensive documentation
+-- - Verification queries
+--
+-- This file is kept for reference only.
 -- Run this script AFTER creating the storage buckets in Supabase Dashboard
 
 -- ============================================================================

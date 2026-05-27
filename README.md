@@ -84,7 +84,68 @@ npm run build
 
 # Preview production build
 npm run preview
+
+# Run tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
 ```
+
+## Deployment (Vercel)
+
+The frontend is configured for deployment on Vercel's free tier.
+
+### Prerequisites
+
+- A [Vercel account](https://vercel.com/signup)
+- A Supabase project with migrations applied and seed data loaded
+- Git repository connected to Vercel (recommended)
+
+### Environment Variables
+
+Set these in the Vercel project dashboard under **Settings → Environment Variables**:
+
+| Variable | Description |
+|---|---|
+| `VITE_SUPABASE_URL` | Your Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Your Supabase anon/public key |
+
+Get both values from: https://app.supabase.com/project/_/settings/api
+
+### Deploy via Git (recommended)
+
+1. Push the repository to GitHub
+2. Import the repo in [Vercel Dashboard](https://vercel.com/new)
+3. Vercel auto-detects Vite — no custom build settings needed
+4. Add the environment variables above
+5. Deploy — Vercel auto-deploys on every push to `main`
+
+### Deploy via CLI
+
+```bash
+npm install -g vercel
+vercel login
+vercel --prod
+```
+
+When prompted, accept the defaults. Add environment variables with:
+
+```bash
+vercel env add VITE_SUPABASE_URL
+vercel env add VITE_SUPABASE_ANON_KEY
+```
+
+### Post-Deploy Checklist
+
+- [ ] Landing page loads and shows upcoming sessions
+- [ ] Student sign-up redirects to `/dashboard`
+- [ ] Teacher sign-up/sign-in redirects to `/admin`
+- [ ] Session modal opens and video streams
+- [ ] Enrollment form submits payment proof
+- [ ] Topic requests page loads and accepts votes
+
+The `vercel.json` config handles SPA routing (all paths rewrite to `index.html`) and sets long-lived cache headers for static assets.
 
 ## License
 
